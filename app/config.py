@@ -6,7 +6,9 @@ load_dotenv()
 MEMOS_URL = os.getenv("MEMOS_URL", "http://127.0.0.1:5230").rstrip("/")
 MEMOS_TOKEN = os.getenv("MEMOS_TOKEN", "")
 NTFY_TOKEN = os.getenv("NTFY_TOKEN") or None
-TRIGGER_PHRASES = [p.strip().lower() for p in os.getenv("TRIGGER_PHRASES", "").split(",") if p.strip()]
+TRIGGER_PHRASES = [
+    p.strip().lower() for p in os.getenv("TRIGGER_PHRASES", "").split(",") if p.strip()
+]
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "30"))
 FIRST_RUN_LOOKBACK = int(os.getenv("FIRST_RUN_LOOKBACK", "3600"))
 WORKER_INTERVAL = int(os.getenv("WORKER_INTERVAL", "30"))
