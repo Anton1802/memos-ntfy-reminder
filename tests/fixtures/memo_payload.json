@@ -1,0 +1,158 @@
+{
+  "memos": [
+    {
+      "name": "memos/YWZwKbxRjE4YmLeU2fZVoc",
+      "state": "NORMAL",
+      "creator": "users/admin",
+      "createTime": "2026-09-17T16:26:21Z",
+      "updateTime": "2026-09-17T17:53:31Z",
+      "content": "#списокпродуктов\n- [x] стародвооская\n- [x] пачка сахара 3кг",
+      "visibility": "PRIVATE",
+      "tags": ["списокпродуктов"],
+      "pinned": false,
+      "attachments": [],
+      "relations": [],
+      "reactions": [],
+      "property": {
+        "hasLink": false,
+        "hasTaskList": true,
+        "hasCode": false,
+        "hasIncompleteTasks": false,
+        "title": ""
+      },
+      "snippet": "#списокпродуктовстародвооская пачка сахара 3кг"
+    },
+    {
+      "name": "memos/8iRAjg4ZnycWiHJropPhNK",
+      "state": "NORMAL",
+      "creator": "users/admin",
+      "createTime": "2026-09-16T02:49:40Z",
+      "updateTime": "2026-09-16T02:49:40Z",
+      "content": "#работа\n**4RS9SV1LKT0PP078SAH1TA69GG04DE7L** — недовольство сроками по заявке (56°)\n\n- Компенсация: не оформлена, только устное обещание\n- Не уточнено про ранее начисленные ТДН\n- Ошибочно сказано про поворот антенны/замену конвертера (зона 56°, не требуется)\n- Не предложен ОТТ\n- Не сказано: ОУ не активна, заявка закроется по окончании ТДН (осталось <30)",
+      "visibility": "PRIVATE",
+      "tags": ["работа"],
+      "pinned": false,
+      "attachments": [],
+      "relations": [],
+      "reactions": [],
+      "property": {
+        "hasLink": false,
+        "hasTaskList": false,
+        "hasCode": false,
+        "hasIncompleteTasks": false,
+        "title": ""
+      },
+      "snippet": "#работа 4RS9SV1LKT0PP078SAH1TA69GG04DE7L — недовольство сроками ..."
+    },
+    {
+      "name": "memos/SK2VeXgx3VC68E77cmN8sy",
+      "state": "NORMAL",
+      "creator": "users/admin",
+      "createTime": "2026-09-13T14:52:48Z",
+      "updateTime": "2026-09-13T15:10:51Z",
+      "content": "#списокпродуктов\n- [x] чай\n- [x] хлеб\n- [x] пельмени\n- [x] молоко 2 шт\n- [x] пряники\n- [x] колбаса колечко (копченые)",
+      "visibility": "PRIVATE",
+      "tags": ["списокпродуктов"],
+      "pinned": false,
+      "attachments": [],
+      "relations": [],
+      "reactions": [],
+      "property": {
+        "hasLink": false,
+        "hasTaskList": true,
+        "hasCode": false,
+        "hasIncompleteTasks": false,
+        "title": ""
+      },
+      "snippet": "#списокпродуктовчай хлеб пельмени молоко 2 шт пряники колбаса ..."
+    },
+    {
+      "name": "memos/3vXF3H6yFS4zTRgqxEHKU6",
+      "state": "NORMAL",
+      "creator": "users/admin",
+      "createTime": "2026-09-10T21:23:44Z",
+      "updateTime": "2026-09-11T02:56:38Z",
+      "content": "#скриптинг\nКоротко — приоритет изучения:\n\nСначала пойми bash quoting (\"...\", '...', $'...') — иначе будешь путать это с regex\nПотом regex-синтаксис отдельно (regex101 — самый быстрый путь)\nПотом awk как отдельный язык, где regex — лишь один из инструментов",
+      "visibility": "PRIVATE",
+      "tags": ["скриптинг"],
+      "pinned": false,
+      "attachments": [],
+      "relations": [],
+      "reactions": [],
+      "property": {
+        "hasLink": false,
+        "hasTaskList": false,
+        "hasCode": false,
+        "hasIncompleteTasks": false,
+        "title": ""
+      },
+      "snippet": "#скриптинг Коротко — приоритет изучения: Сначала пойми bash ..."
+    },
+    {
+      "name": "memos/b8F9DhowwNYuuJ7Zz9YJuR",
+      "state": "NORMAL",
+      "creator": "users/admin",
+      "createTime": "2026-09-07T13:49:35Z",
+      "updateTime": "2026-09-15T20:34:46Z",
+      "content": "#долги\nбабушка:\n556 руб\n771 руб\n205 руб\n248 руб\n543 руб\n\nпапа:\n199 руб сигареты",
+      "visibility": "PRIVATE",
+      "tags": ["долги"],
+      "pinned": false,
+      "attachments": [],
+      "relations": [],
+      "reactions": [],
+      "property": {
+        "hasLink": false,
+        "hasTaskList": false,
+        "hasCode": false,
+        "hasIncompleteTasks": false,
+        "title": ""
+      },
+      "snippet": "#долги бабушка: 556 руб 771 руб 205 руб 248 руб 543 руб"
+    },
+    {
+      "name": "memos/TESTreminder000000000001",
+      "state": "NORMAL",
+      "creator": "users/admin",
+      "createTime": "2026-09-18T10:00:00Z",
+      "updateTime": "2026-09-18T10:00:00Z",
+      "content": "напомни через 15 минут позвонить маме",
+      "visibility": "PRIVATE",
+      "tags": [],
+      "pinned": false,
+      "attachments": [],
+      "relations": [],
+      "reactions": [],
+      "property": {
+        "hasLink": false,
+        "hasTaskList": false,
+        "hasCode": false,
+        "hasIncompleteTasks": false,
+        "title": ""
+      },
+      "snippet": "напомни через 15 минут позвонить маме"
+    },
+    {
+      "name": "memos/ARCHIVEDexample00000001",
+      "state": "ARCHIVED",
+      "creator": "users/admin",
+      "createTime": "2026-09-05T08:00:00Z",
+      "updateTime": "2026-09-05T08:00:00Z",
+      "content": "напомни завтра в 9 купить хлеб",
+      "visibility": "PRIVATE",
+      "tags": [],
+      "pinned": false,
+      "attachments": [],
+      "relations": [],
+      "reactions": [],
+      "property": {
+        "hasLink": false,
+        "hasTaskList": false,
+        "hasCode": false,
+        "hasIncompleteTasks": false,
+        "title": ""
+      },
+      "snippet": "напомни завтра в 9 купить хлеб"
+    }
+  ]
+}
