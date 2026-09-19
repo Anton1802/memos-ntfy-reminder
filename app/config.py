@@ -6,6 +6,8 @@ load_dotenv()
 MEMOS_URL = os.getenv("MEMOS_URL", "http://127.0.0.1:5230").rstrip("/")
 MEMOS_TOKEN = os.getenv("MEMOS_TOKEN", "")
 NTFY_TOKEN = os.getenv("NTFY_TOKEN") or None
+NTFY_URL = os.getenv("NTFY_URL")
+NTFY_TOPIC = os.getenv("NTFY_TOPIC")
 TRIGGER_PHRASES = [
     p.strip().lower() for p in os.getenv("TRIGGER_PHRASES", "").split(",") if p.strip()
 ]
