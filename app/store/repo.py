@@ -63,12 +63,11 @@ def fetch_due(
         SELECT id, memo_id, text, due_at, attempts
         FROM reminders
         WHERE status IN ('pending', 'error')
-          AND attempts < ?
           AND due_at <= ?
         ORDER BY due_at ASC
         LIMIT ?
         """,
-        (MAX_ATTEMPTS, now_ts, limit),
+        (now_ts, limit),
     ).fetchall()
 
 

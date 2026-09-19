@@ -72,7 +72,6 @@ def _match_rel_number(text: str) -> timedelta | None:
 # --- относительное словом ---------------------------------------------------
 
 _WORD_SECONDS: dict[str, int] = {
-    "полтора часа": 5400,
     "полчаса": 1800,
     "пару часов": 7200,
     "пару минут": 120,
@@ -89,6 +88,44 @@ _WORD_KEYS_SORTED = tuple(sorted(_WORD_SECONDS.keys(), key=len, reverse=True))
 _RE_REL_WORD = re.compile(
     r"через\s+(" + "|".join(re.escape(k) for k in _WORD_KEYS_SORTED) + r")\b"
 )
+
+_NUM_WORDS: dict[str, float] = {
+    "одну": 1,
+    "один": 1,
+    "одна": 1,
+    "две": 2,
+    "два": 2,
+    "три": 3,
+    "четыре": 4,
+    "пять": 5,
+    "шесть": 6,
+    "семь": 7,
+    "восемь": 8,
+    "девять": 9,
+    "десять": 10,
+    "полтора": 1.5,
+    "полторы": 1.5,
+}
+
+# Единицы — те же, что в _RE_REL, чтобы не дублировать смысл
+_RE_REL_NUM_WORD = re.compile(
+    r"через\s+(" + "|".join(_NUM_WORDS.keys()) + r")\s+"
+    r"(минут\w*|мин|м|час\w*|ч|день|дня|дней|дн|д|суток|сутки|"
+    r"недел\w*|нед|месяц\w*|мес|год\w*|лет|г)\b"
+)
+
+
+def _match_rel_num_word(text: str) -> timedelta | None:
+    m = _RE_REL_NUM_WORD.search(text)
+    if not m:
+        return None
+    n = _NUM_WORDS.get(m.group(1))
+    if not n or n <= 0:
+        return None
+    secs = _UNIT_SECONDS.get(m.group(2))
+    if not secs:
+        return None
+    return timedelta(seconds=round(n * secs))
 
 
 def _match_rel_word(text: str) -> timedelta | None:
@@ -362,6 +399,11 @@ def parse_due(text: str, now: datetime) -> datetime | None:
 
     # 1. "через N единиц" — самое специфичное
     delta = _match_rel_number(normalized)
+    if delta is not None:
+        return (now + delta).astimezone(timezone.utc)
+
+        # 2. "через одну/две/... единиц" (числительное прописью)
+    delta = _match_rel_num_word(normalized)
     if delta is not None:
         return (now + delta).astimezone(timezone.utc)
 

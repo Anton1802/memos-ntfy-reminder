@@ -249,3 +249,26 @@ def test_next_monday_at_15():
     assert parse_due("в понедельник в 15", NOW) == datetime(
         2026, 9, 21, 12, 0, tzinfo=timezone.utc
     )
+
+
+# --- относительное с числительным прописью ----------------------------------
+
+
+def test_in_one_minute_word():
+    assert parse_due("через одну минуту", NOW) == NOW + timedelta(minutes=1)
+
+
+def test_in_two_weeks_word():
+    assert parse_due("через две недели", NOW) == NOW + timedelta(days=14)
+
+
+def test_in_three_days_word():
+    assert parse_due("через три дня", NOW) == NOW + timedelta(days=3)
+
+
+def test_in_ten_minutes_word():
+    assert parse_due("через десять минут", NOW) == NOW + timedelta(minutes=10)
+
+
+def test_in_one_and_a_half_hours_word():
+    assert parse_due("через полтора часа", NOW) == NOW + timedelta(minutes=90)

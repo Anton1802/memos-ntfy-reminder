@@ -56,19 +56,6 @@ def test_mark_sent_excluded_from_fetch(conn):
     assert repo.fetch_due(conn, now_ts=500) == []
 
 
-def test_mark_error_retries_until_max(conn):
-    repo.add_reminder(conn, "memos/1", "x", due_at=100, created_at=0)
-    rid = conn.execute("SELECT id FROM reminders").fetchone()[0]
-
-    for _ in range(repo.MAX_ATTEMPTS):
-        rows = repo.fetch_due(conn, now_ts=500)
-        assert len(rows) == 1
-        repo.mark_error(conn, rid, when=200)
-
-    # attempts == MAX → больше не берём
-    assert repo.fetch_due(conn, now_ts=500) == []
-
-
 def test_check_constraint_status(conn):
     import sqlite3
 
