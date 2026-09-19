@@ -1,0 +1,19 @@
+services:
+  memos-ntfy-reminder:
+    build: .
+    image: memos-ntfy-reminder:latest
+    container_name: memos-ntfy-reminder
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_PATH: /data/reminders.db
+    volumes:
+      - memos-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  memos-data:
