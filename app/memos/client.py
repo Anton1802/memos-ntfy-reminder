@@ -1,28 +1,58 @@
-from app.config import MEMOS_TOKEN, MEMOS_URL
-import requests
+from __future__ import annotations
+
 import logging
 
-_TIMEOUT = 5
+import requests
+
+from app.config import MEMOS_TOKEN, MEMOS_URL
+from app.memos.models import Memo
 
 log = logging.getLogger(__name__)
 
+_TIMEOUT = 10
+
+
+def _headers() -> dict[str, str]:
+    h = {"Content-Type": "application/json"}
+    if MEMOS_TOKEN:
+        h["Authorization"] = f"Bearer {MEMOS_TOKEN}"
+    return h
+
+
+def list_memos(limit: int = 200) -> list[Memo]:
+    """Возвращает список заметок. Пустой список при ошибке."""
+    try:
+        r = requests.get(
+            f"{MEMOS_URL}/api/v1/memos",
+            headers=_headers(),
+            params={"pageSize": limit},
+            timeout=_TIMEOUT,
+        )
+    except requests.RequestException as e:
+        log.error("memos list failed: %s", e)
+        return []
+
+    if not r.ok:
+        log.error("memos list returned %s: %s", r.status_code, r.text[:200])
+        return []
+
+    out: list[Memo] = []
+    for item in r.json().get("memos", []):
+        try:
+            out.append(Memo.from_payload(item))
+        except (KeyError, ValueError, TypeError) as e:
+            log.warning("skip malformed memo: %s", e)
+    return out
+
 
 def archive_memo(memo_id: str) -> bool:
-    """Архивирует заметку. True при 2xx.
-
-    memo_id — полное имя ресурса, например 'memos/YWZw...'.
-    """
-    headers = {"Content-Type": "application/json"}
-    if MEMOS_TOKEN:
-        headers["Authorization"] = f"Bearer {MEMOS_TOKEN}"
-
-    url = f"{MEMOS_URL}/api/v1/{memo_id}"
+    """Архивирует заметку. True при 2xx."""
     try:
         r = requests.patch(
-            url,
+            f"{MEMOS_URL}/api/v1/{memo_id}",
             params={"updateMask": "state"},
             json={"state": "ARCHIVED"},
-            headers=headers,
+            headers=_headers(),
             timeout=_TIMEOUT,
         )
     except requests.RequestException as e:

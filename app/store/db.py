@@ -27,6 +27,9 @@ CREATE INDEX IF NOT EXISTS idx_reminders_due
 
 def connect(db_path: str | Path) -> sqlite3.Connection:
     """Открывает соединение. Каждый поток должен звать это сам — sqlite не шарится."""
+    path = Path(db_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
     conn = sqlite3.connect(str(db_path), isolation_level=None)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
