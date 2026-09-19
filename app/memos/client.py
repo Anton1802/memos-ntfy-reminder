@@ -64,3 +64,34 @@ def archive_memo(memo_id: str) -> bool:
         return False
 
     return True
+
+
+def get_memo(memo_id: str) -> tuple[str, Memo | None]:
+    """Возвращает ('ok', memo) | ('not_found', None) | ('error', None).
+
+    - 'ok'        — заметка есть, memo заполнен
+    - 'not_found' — 404, заметки нет (удалили)
+    - 'error'     — сеть/5xx/битый ответ
+    """
+    try:
+        r = requests.get(
+            f"{MEMOS_URL}/api/v1/{memo_id}",
+            headers=_headers(),
+            timeout=_TIMEOUT,
+        )
+    except requests.RequestException as e:
+        log.error("memos get failed: %s", e)
+        return ("error", None)
+
+    if r.status_code == 404:
+        return ("not_found", None)
+
+    if not r.ok:
+        log.error("memos get returned %s: %s", r.status_code, r.text[:200])
+        return ("error", None)
+
+    try:
+        return ("ok", Memo.from_payload(r.json()))
+    except (KeyError, ValueError, TypeError) as e:
+        log.warning("malformed memo %s: %s", memo_id, e)
+        return ("error", None)

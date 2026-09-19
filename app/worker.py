@@ -4,9 +4,9 @@ import logging
 import time
 
 from app.config import WORKER_INTERVAL
-from app.memos.client import archive_memo
+from app.memos.client import archive_memo, get_memo
 from app.notifier.ntfy import send_reminder
-from app.store import repo, db
+from app.store import db, repo
 
 log = logging.getLogger(__name__)
 
@@ -20,23 +20,41 @@ def _format_message(text: str, due_at: int, now_ts: int) -> str:
 
 
 def run_once(conn, now_ts: int | None = None) -> int:
-    """Один проход: забрал due, отправил, архивировал. Возвращает число успешных."""
+    """Один проход: забрал due, проверил живость заметки, отправил."""
     now_ts = int(time.time()) if now_ts is None else now_ts
     rows = repo.fetch_due(conn, now_ts=now_ts)
 
     sent = 0
     for row in rows:
+        status, memo = get_memo(row["memo_id"])
+
+        if status == "not_found":
+            log.info("worker: memo %s deleted, cancel id=%s", row["memo_id"], row["id"])
+            repo.mark_cancelled(conn, row["id"], when=now_ts)
+            continue
+
+        if status == "ok" and memo is not None and memo.state != "NORMAL":
+            log.info(
+                "worker: memo %s archived, cancel id=%s", row["memo_id"], row["id"]
+            )
+            repo.mark_cancelled(conn, row["id"], when=now_ts)
+            continue
+
+        if status == "error":
+            log.warning("worker: memos unavailable, sending anyway id=%s", row["id"])
+
         msg = _format_message(row["text"], row["due_at"], now_ts)
         if send_reminder(msg):
             repo.mark_sent(conn, row["id"], when=now_ts)
-            # архивация — вторична, не влияет на mark_sent
-            if not archive_memo(row["memo_id"]):
-                log.warning("worker: sent but archive failed memo=%s", row["memo_id"])
+            if status == "ok":
+                if not archive_memo(row["memo_id"]):
+                    log.warning(
+                        "worker: sent but archive failed memo=%s", row["memo_id"]
+                    )
             sent += 1
             log.info("worker: sent reminder id=%s", row["id"])
         else:
             repo.mark_error(conn, row["id"], when=now_ts)
-            log.warning("worker: failed reminder id=%s attempts", row["id"])
 
     return sent
 

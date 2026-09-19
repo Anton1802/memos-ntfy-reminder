@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS reminders (
     memo_id TEXT NOT NULL UNIQUE,
     text TEXT NOT NULL,
     due_at INTEGER NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('pending','sent','error')),
+    status TEXT NOT NULL CHECK (status IN ('pending','sent','error','cancelled')),
     created_at INTEGER NOT NULL,
     sent_at INTEGER,
     attempts INTEGER NOT NULL DEFAULT 0

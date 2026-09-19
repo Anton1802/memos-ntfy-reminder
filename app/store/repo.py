@@ -23,6 +23,17 @@ def mark_processed(
     )
 
 
+def mark_cancelled(
+    conn: sqlite3.Connection, reminder_id: int, when: int | None = None
+) -> None:
+    """Помечает reminder отменённым (заметку удалили/архивировали до отправки)."""
+    ts = int(time.time()) if when is None else when
+    conn.execute(
+        "UPDATE reminders SET status='cancelled', sent_at=? WHERE id=?",
+        (ts, reminder_id),
+    )
+
+
 def add_reminder(
     conn: sqlite3.Connection,
     memo_id: str,
