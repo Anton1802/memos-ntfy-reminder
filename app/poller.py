@@ -3,6 +3,11 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+from app.config import TZ
+from app.memos.client import add_comment
+
+_LOCAL_TZ = ZoneInfo(TZ)
 
 from app.config import (
     FIRST_RUN_LOOKBACK,
@@ -70,6 +75,11 @@ def run_once(conn, now_ts: int | None = None) -> int:
         )
         if ok:
             added += 1
+            due_local = due.astimezone(_LOCAL_TZ)
+            add_comment(
+                memo.id,
+                f"⏳ [memos-ntfy-reminder] Взято в работу. Отправлю в {due_local:%H:%M}",
+            )
             log.info("poller: added reminder memo=%s due=%s", memo.id, due.isoformat())
 
         repo.mark_processed(conn, memo.id, when=now_ts)

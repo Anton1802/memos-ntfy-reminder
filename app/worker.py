@@ -4,9 +4,16 @@ import logging
 import time
 
 from app.config import WORKER_INTERVAL
-from app.memos.client import archive_memo, get_memo
+from app.memos.client import archive_memo, get_memo, add_comment
 from app.notifier.ntfy import send_reminder
 from app.store import db, repo
+
+from zoneinfo import ZoneInfo
+from app.config import TZ
+from datetime import datetime
+
+_LOCAL_TZ = ZoneInfo(TZ)
+
 
 log = logging.getLogger(__name__)
 
@@ -51,10 +58,24 @@ def run_once(conn, now_ts: int | None = None) -> int:
                     log.warning(
                         "worker: sent but archive failed memo=%s", row["memo_id"]
                     )
+                now_local = datetime.fromtimestamp(now_ts, tz=_LOCAL_TZ)
+                add_comment(
+                    row["memo_id"],
+                    f"✅ [memos-ntfy-reminder] Отправлено в {now_local:%H:%M}",
+                )
             sent += 1
             log.info("worker: sent reminder id=%s", row["id"])
         else:
             repo.mark_error(conn, row["id"], when=now_ts)
+            # attempts после mark_error
+            attempts = row["attempts"] + 1
+            add_comment(
+                row["memo_id"],
+                f"⚠️ [memos-ntfy-reminder] Ошибка отправки (попытка {attempts})",
+            )
+            log.warning(
+                "worker: failed reminder id=%s attempts=%s", row["id"], attempts
+            )
 
     return sent
 

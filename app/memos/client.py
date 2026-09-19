@@ -7,6 +7,8 @@ import requests
 from app.config import MEMOS_TOKEN, MEMOS_URL
 from app.memos.models import Memo
 
+from datetime import datetime
+
 log = logging.getLogger(__name__)
 
 _TIMEOUT = 10
@@ -95,3 +97,40 @@ def get_memo(memo_id: str) -> tuple[str, Memo | None]:
     except (KeyError, ValueError, TypeError) as e:
         log.warning("malformed memo %s: %s", memo_id, e)
         return ("error", None)
+
+
+def add_comment(memo_id: str, text: str) -> bool:
+    """Добавляет комментарий к заметке. True при 2xx."""
+    if not text or not text.strip():
+        return False
+    try:
+        r = requests.post(
+            f"{MEMOS_URL}/api/v1/{memo_id}/comments",
+            json={"content": text},
+            headers=_headers(),
+            timeout=_TIMEOUT,
+        )
+    except requests.RequestException as e:
+        log.error("memos comment failed: %s", e)
+        return False
+    if not r.ok:
+        log.error("memos comment returned %s: %s", r.status_code, r.text[:200])
+        return False
+    return True
+
+
+# app/memos/client.py или отдельный модуль
+
+COMMENT_PREFIX = "[memos-ntfy-reminder]"
+
+
+def _comment_in_progress(due_local: datetime) -> str:
+    return f"⏳ {COMMENT_PREFIX} Взято в работу. Отправлю в {due_local:%H:%M}"
+
+
+def _comment_sent(now_local: datetime) -> str:
+    return f"✅ {COMMENT_PREFIX} Отправлено в {now_local:%H:%M}"
+
+
+def _comment_error(attempts: int) -> str:
+    return f"⚠️ {COMMENT_PREFIX} Ошибка отправки (попытка {attempts})"
