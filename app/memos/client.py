@@ -117,20 +117,3 @@ def add_comment(memo_id: str, text: str) -> bool:
         log.error("memos comment returned %s: %s", r.status_code, r.text[:200])
         return False
     return True
-
-
-# app/memos/client.py или отдельный модуль
-
-COMMENT_PREFIX = "[memos-ntfy-reminder]"
-
-
-def _comment_in_progress(due_local: datetime) -> str:
-    return f"⏳ {COMMENT_PREFIX} Взято в работу. Отправлю в {due_local:%H:%M}"
-
-
-def _comment_sent(now_local: datetime) -> str:
-    return f"✅ {COMMENT_PREFIX} Отправлено в {now_local:%H:%M}"
-
-
-def _comment_error(attempts: int) -> str:
-    return f"⚠️ {COMMENT_PREFIX} Ошибка отправки (попытка {attempts})"

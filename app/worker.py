@@ -61,7 +61,7 @@ def run_once(conn, now_ts: int | None = None) -> int:
                 now_local = datetime.fromtimestamp(now_ts, tz=_LOCAL_TZ)
                 add_comment(
                     row["memo_id"],
-                    f"✅ [memos-ntfy-reminder] Отправлено в {now_local:%H:%M}",
+                    f"✅ [memos-ntfy-reminder] Отправлено {now_local:%d.%m.%Y %H:%M}",
                 )
             sent += 1
             log.info("worker: sent reminder id=%s", row["id"])

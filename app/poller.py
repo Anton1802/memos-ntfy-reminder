@@ -78,7 +78,7 @@ def run_once(conn, now_ts: int | None = None) -> int:
             due_local = due.astimezone(_LOCAL_TZ)
             add_comment(
                 memo.id,
-                f"⏳ [memos-ntfy-reminder] Взято в работу. Отправлю в {due_local:%H:%M}",
+                f"⏳ [memos-ntfy-reminder] Взято в работу. Отправлю {due_local:%d.%m.%Y %H:%M}",
             )
             log.info("poller: added reminder memo=%s due=%s", memo.id, due.isoformat())
 
