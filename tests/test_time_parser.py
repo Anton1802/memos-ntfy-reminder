@@ -1,3 +1,5 @@
+"""Тесты парсера напоминаний. Запуск: python -m pytest tests/test_time_parser.py -v"""
+
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -5,270 +7,206 @@ import pytest
 
 from app.parsing.time_parser import parse_due
 
-NOW = datetime(2026, 9, 18, 10, 0, tzinfo=ZoneInfo("Europe/Moscow"))  # пятница
+MSK = ZoneInfo("Europe/Moscow")
+NOW = datetime(2026, 9, 18, 10, 0, tzinfo=MSK)  # пятница
 
 
-# --- старые (регрессия) -----------------------------------------------------
+def utc(year, month, day, hour=6, minute=0):
+    return datetime(year, month, day, hour, minute, tzinfo=timezone.utc)
 
 
-def test_in_7_days():
-    assert parse_due("через 7 дней", NOW) == NOW.replace(day=25)
+# Относительное время: цифры
+@pytest.mark.parametrize(
+    "phrase,minutes",
+    [
+        ("через 1 минуту", 1),
+        ("через 5 минут", 5),
+        ("через 90 минут", 90),
+        ("через 1.5 часа", 90),
+        ("через 1,5 часа", 90),
+        ("через 2 часа", 120),
+        ("через 7 дней", 7 * 24 * 60),
+        ("через 2 недели", 14 * 24 * 60),
+    ],
+)
+def test_relative_digits(phrase, minutes):
+    assert parse_due(phrase, NOW) == NOW + timedelta(minutes=minutes)
 
 
-def test_in_2_weeks():
-    assert parse_due("через 2 недели", NOW) == NOW + timedelta(days=14)
+# Относительное время: слова
+@pytest.mark.parametrize(
+    "phrase,minutes",
+    [
+        ("через минуту", 1),
+        ("через час", 60),
+        ("через день", 24 * 60),
+        ("через сутки", 24 * 60),
+        ("через неделю", 7 * 24 * 60),
+        ("через полчаса", 30),
+        ("через полтора часа", 90),
+        ("через пару минут", 2),
+        ("через пару часов", 120),
+        ("через одну минуту", 1),
+        ("через две недели", 14 * 24 * 60),
+        ("через три дня", 3 * 24 * 60),
+        ("через десять минут", 10),
+    ],
+)
+def test_relative_words(phrase, minutes):
+    assert parse_due(phrase, NOW) == NOW + timedelta(minutes=minutes)
 
 
-def test_in_a_week_word():
-    assert parse_due("через неделю", NOW) == NOW + timedelta(days=7)
+# Календарные месяцы и годы (не фиксированные 30/365 дней)
+@pytest.mark.parametrize(
+    "phrase,expected",
+    [
+        ("через месяц", utc(2026, 10, 18, 7)),
+        ("через 1 месяц", utc(2026, 10, 18, 7)),
+        ("через 2 месяца", utc(2026, 11, 18, 7)),
+        ("через 5 месяцев", utc(2027, 2, 18, 7)),
+        ("через три месяца", utc(2026, 12, 18, 7)),
+        ("через год", utc(2027, 9, 18, 7)),
+        ("через 2 года", utc(2028, 9, 18, 7)),
+        ("через пять лет", utc(2031, 9, 18, 7)),
+    ],
+)
+def test_calendar_relative(phrase, expected):
+    assert parse_due(phrase, NOW) == expected
 
 
-def test_in_a_couple_hours_none():
-    assert parse_due("через пару часов", NOW) is not None  # теперь +2ч
+def test_end_of_month():
+    now = datetime(2026, 1, 31, 10, 0, tzinfo=MSK)
+    assert parse_due("через месяц", now) == utc(2026, 2, 28, 7)
 
 
-def test_tomorrow_at_9_after_10_am():
-    assert parse_due("завтра в 9", NOW) == datetime(
-        2026, 9, 19, 6, 0, tzinfo=timezone.utc
-    )
+def test_leap_year_calendar():
+    now = datetime(2024, 2, 29, 10, 0, tzinfo=MSK)
+    assert parse_due("через год", now) == utc(2025, 2, 28, 7)
 
 
-def test_at_9_30_already_passed():
-    assert parse_due("в 9:30", NOW) == datetime(2026, 9, 19, 6, 30, tzinfo=timezone.utc)
+@pytest.mark.parametrize(
+    "phrase",
+    [
+        "через 0 минут",
+        "через 0 дней",
+        "через 0 месяцев",
+        "через 1.5 месяца",
+        "через 1.5 года",
+    ],
+)
+def test_invalid_relative(phrase):
+    assert parse_due(phrase, NOW) is None
 
 
+# Завтра, послезавтра, сегодня
+@pytest.mark.parametrize(
+    "phrase,expected",
+    [
+        ("завтра", utc(2026, 9, 19)),
+        ("завтра в 9", utc(2026, 9, 19)),
+        ("послезавтра", utc(2026, 9, 20)),
+        ("послезавтра в 15", utc(2026, 9, 20, 12)),
+        ("сегодня в 18:00", utc(2026, 9, 18, 15)),
+    ],
+)
+def test_relative_day(phrase, expected):
+    assert parse_due(phrase, NOW) == expected
+
+
+@pytest.mark.parametrize("phrase", ["сегодня в 9:00", "сегодня", "сегодня утром"])
+def test_past_or_unspecified_today(phrase):
+    assert parse_due(phrase, NOW) is None
+
+
+# Часы
+@pytest.mark.parametrize(
+    "phrase,expected",
+    [
+        ("в 18", utc(2026, 9, 18, 15)),
+        ("в 18.00", utc(2026, 9, 18, 15)),
+        ("к 18:00", utc(2026, 9, 18, 15)),
+        ("18:00", utc(2026, 9, 18, 15)),
+        ("в 9:30", utc(2026, 9, 19, 6, 30)),
+    ],
+)
+def test_clock(phrase, expected):
+    assert parse_due(phrase, NOW) == expected
+
+
+def test_invalid_clock():
+    assert parse_due("в 25:00", NOW) is None
+
+
+# Части дня
+@pytest.mark.parametrize(
+    "phrase,expected",
+    [
+        ("завтра утром", utc(2026, 9, 19)),
+        ("завтра вечером", utc(2026, 9, 19, 15)),
+        ("сегодня вечером", utc(2026, 9, 18, 15)),
+    ],
+)
+def test_day_parts(phrase, expected):
+    assert parse_due(phrase, NOW) == expected
+
+
+@pytest.mark.xfail(
+    reason="Текущий парсер возвращает прошедшее утро; поведение нужно определить"
+)
+def test_morning_without_day_should_not_be_past():
+    assert parse_due("утром", NOW) == utc(2026, 9, 19)
+
+
+# Абсолютные даты и _build_date
+@pytest.mark.parametrize(
+    "phrase,expected",
+    [
+        ("20 сентября", utc(2026, 9, 20)),
+        ("20 сентября в 15:00", utc(2026, 9, 20, 12)),
+        ("20.09", utc(2026, 9, 20)),
+        ("20.09.2027 в 15:00", utc(2027, 9, 20, 12)),
+        ("01.01", utc(2027, 1, 1)),
+        ("10 сентября", utc(2027, 9, 10)),
+        ("10 сентября 2027", utc(2027, 9, 10)),
+    ],
+)
+def test_absolute_dates(phrase, expected):
+    assert parse_due(phrase, NOW) == expected
+
+
+@pytest.mark.parametrize(
+    "phrase",
+    [
+        "10 сентября 2026",
+        "10.09.2026",
+        "31 февраля 2027",
+    ],
+)
+def test_past_explicit_year_or_invalid_date(phrase):
+    assert parse_due(phrase, NOW) is None
+
+
+# Дни недели
+@pytest.mark.parametrize(
+    "phrase,expected",
+    [
+        ("в пятницу", utc(2026, 9, 25)),  # сегодня 09:00 уже прошло
+        ("в понедельник", utc(2026, 9, 21)),
+        ("в понедельник в 15", utc(2026, 9, 21, 12)),
+        ("в субботу", utc(2026, 9, 19)),
+        ("в воскресенье", utc(2026, 9, 20)),
+    ],
+)
+def test_weekdays(phrase, expected):
+    assert parse_due(phrase, NOW) == expected
+
+
+# Общие проверки
 def test_naive_now_raises():
     with pytest.raises(ValueError):
         parse_due("через 5 минут", datetime(2026, 9, 18, 10, 0))
 
 
-# --- A: через N единиц ------------------------------------------------------
-
-
-def test_in_1_minute_digit():
-    assert parse_due("через 1 минуту", NOW) == NOW + timedelta(minutes=1)
-
-
-def test_in_90_minutes():
-    assert parse_due("через 90 минут", NOW) == NOW + timedelta(minutes=90)
-
-
-def test_in_1_5_hours():
-    assert parse_due("через 1.5 часа", NOW) == NOW + timedelta(minutes=90)
-
-
-def test_in_2_years():
-    assert parse_due("через 2 года", NOW) == NOW + timedelta(days=730)
-
-
-def test_in_0_minutes_none():
-    assert parse_due("через 0 минут", NOW) is None
-
-
-# --- A2: через слово --------------------------------------------------------
-
-
-def test_in_a_minute_word():
-    assert parse_due("через минуту", NOW) == NOW + timedelta(minutes=1)
-
-
-def test_in_an_hour_word():
-    assert parse_due("через час", NOW) == NOW + timedelta(hours=1)
-
-
-def test_in_a_day_word():
-    assert parse_due("через день", NOW) == NOW + timedelta(days=1)
-
-
-def test_in_24_hours_word():
-    assert parse_due("через сутки", NOW) == NOW + timedelta(days=1)
-
-
-def test_in_half_an_hour():
-    assert parse_due("через полчаса", NOW) == NOW + timedelta(minutes=30)
-
-
-def test_in_an_hour_and_a_half():
-    assert parse_due("через полтора часа", NOW) == NOW + timedelta(minutes=90)
-
-
-def test_in_couple_of_minutes():
-    assert parse_due("через пару минут", NOW) == NOW + timedelta(minutes=2)
-
-
-def test_in_couple_of_hours():
-    assert parse_due("через пару часов", NOW) == NOW + timedelta(hours=2)
-
-
-# --- B: завтра/послезавтра/сегодня ------------------------------------------
-
-
-def test_tomorrow_no_time():
-    # завтра 09:00 MSK = 06:00 UTC
-    assert parse_due("завтра", NOW) == datetime(2026, 9, 19, 6, 0, tzinfo=timezone.utc)
-
-
-def test_day_after_tomorrow():
-    assert parse_due("послезавтра в 15", NOW) == datetime(
-        2026, 9, 20, 12, 0, tzinfo=timezone.utc
-    )
-
-
-def test_day_after_tomorrow_no_time():
-    assert parse_due("послезавтра", NOW) == datetime(
-        2026, 9, 20, 6, 0, tzinfo=timezone.utc
-    )
-
-
-def test_today_in_future():
-    # сейчас 10:00, "сегодня в 18:00" → сегодня 18:00 MSK = 15:00 UTC
-    assert parse_due("сегодня в 18:00", NOW) == datetime(
-        2026, 9, 18, 15, 0, tzinfo=timezone.utc
-    )
-
-
-def test_today_in_past_fallback():
-    # сейчас 10:00, "сегодня в 9:00" → fallback
-    assert parse_due("сегодня в 9:00", NOW) is None
-
-
-def test_today_no_time_fallback():
-    assert parse_due("сегодня", NOW) is None
-
-
-# --- C: абсолютное время ----------------------------------------------------
-
-
-def test_at_18_today():
-    assert parse_due("в 18", NOW) == datetime(2026, 9, 18, 15, 0, tzinfo=timezone.utc)
-
-
-def test_at_18_with_dot():
-    assert parse_due("в 18.00", NOW) == datetime(
-        2026, 9, 18, 15, 0, tzinfo=timezone.utc
-    )
-
-
-def test_k_18():
-    assert parse_due("к 18:00", NOW) == datetime(
-        2026, 9, 18, 15, 0, tzinfo=timezone.utc
-    )
-
-
-def test_clock_no_prep():
-    assert parse_due("18:00", NOW) == datetime(2026, 9, 18, 15, 0, tzinfo=timezone.utc)
-
-
-def test_at_25_invalid():
-    assert parse_due("в 25:00", NOW) is None
-
-
-# --- E: части дня -----------------------------------------------------------
-
-
-def test_morning():
-    # сейчас 10:00, "утром" = 09:00 → прошло → завтра 09:00? Нет: часть дня
-    # без указателя "завтра" — база сегодня, если прошло → всё равно сегодня?
-    # По ТЗ: не решено. Наш код: _parse_day_part без day_word даёт сегодня 09:00.
-    # 09:00 < 10:00 → вернём сегодня 09:00 (в прошлом). Это ок для напоминалки?
-    # Ставим: сегодня 09:00 MSK = 06:00 UTC.
-    assert parse_due("утром", NOW) == datetime(2026, 9, 18, 6, 0, tzinfo=timezone.utc)
-
-
-def test_tomorrow_morning():
-    assert parse_due("завтра утром", NOW) == datetime(
-        2026, 9, 19, 6, 0, tzinfo=timezone.utc
-    )
-
-
-def test_tomorrow_evening():
-    assert parse_due("завтра вечером", NOW) == datetime(
-        2026, 9, 19, 15, 0, tzinfo=timezone.utc
-    )
-
-
-def test_today_evening_future():
-    assert parse_due("сегодня вечером", NOW) == datetime(
-        2026, 9, 18, 15, 0, tzinfo=timezone.utc
-    )
-
-
-def test_today_morning_past_fallback():
-    assert parse_due("сегодня утром", NOW) is None
-
-
-# --- D: абсолютные даты -----------------------------------------------------
-
-
-def test_date_word():
-    # 20 сентября, время не указано → 09:00 MSK = 06:00 UTC
-    assert parse_due("20 сентября", NOW) == datetime(
-        2026, 9, 20, 6, 0, tzinfo=timezone.utc
-    )
-
-
-def test_date_word_with_time():
-    assert parse_due("20 сентября в 15:00", NOW) == datetime(
-        2026, 9, 20, 12, 0, tzinfo=timezone.utc
-    )
-
-
-def test_date_numeric():
-    assert parse_due("20.09", NOW) == datetime(2026, 9, 20, 6, 0, tzinfo=timezone.utc)
-
-
-def test_date_numeric_with_year():
-    assert parse_due("20.09.2027 в 15:00", NOW) == datetime(
-        2027, 9, 20, 12, 0, tzinfo=timezone.utc
-    )
-
-
-def test_date_in_past_next_year():
-    # 01.01 уже прошло → 2027
-    assert parse_due("01.01", NOW) == datetime(2027, 1, 1, 6, 0, tzinfo=timezone.utc)
-
-
-# --- день недели ------------------------------------------------------------
-
-
-def test_next_friday():
-    # NOW = пятница 18.09 10:00. "в пятницу" → сегодня 09:00 (прошло, но по решению — оставляем)
-    assert parse_due("в пятницу", NOW) == datetime(
-        2026, 9, 18, 6, 0, tzinfo=timezone.utc
-    )
-
-
-def test_next_monday():
-    # следующий понедельник = 21.09
-    assert parse_due("в понедельник", NOW) == datetime(
-        2026, 9, 21, 6, 0, tzinfo=timezone.utc
-    )
-
-
-def test_next_monday_at_15():
-    assert parse_due("в понедельник в 15", NOW) == datetime(
-        2026, 9, 21, 12, 0, tzinfo=timezone.utc
-    )
-
-
-# --- относительное с числительным прописью ----------------------------------
-
-
-def test_in_one_minute_word():
-    assert parse_due("через одну минуту", NOW) == NOW + timedelta(minutes=1)
-
-
-def test_in_two_weeks_word():
-    assert parse_due("через две недели", NOW) == NOW + timedelta(days=14)
-
-
-def test_in_three_days_word():
-    assert parse_due("через три дня", NOW) == NOW + timedelta(days=3)
-
-
-def test_in_ten_minutes_word():
-    assert parse_due("через десять минут", NOW) == NOW + timedelta(minutes=10)
-
-
-def test_in_one_and_a_half_hours_word():
-    assert parse_due("через полтора часа", NOW) == NOW + timedelta(minutes=90)
+@pytest.mark.parametrize("phrase", ["", "   ", "напомни что-нибудь"])
+def test_no_time_expression(phrase):
+    assert parse_due(phrase, NOW) is None

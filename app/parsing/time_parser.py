@@ -3,19 +3,41 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
+from dateutil.relativedelta import relativedelta
 
 from app.config import TZ
 
 _LOCAL_TZ = ZoneInfo(TZ)
 _FALLBACK = object()  # сигнал: парсер матчит, но нужен fallback (stop, return None)
 
+# --- для календарных дней, лет, месяцев --------------------------------------------------
+
+
+def _make_delta(n: float, unit: str):
+    if unit in {"месяц", "месяца", "месяцев", "мес"}:
+        if not n.is_integer():
+            return None
+        return relativedelta(months=int(n))
+
+    if unit in {"год", "года", "годов", "годы", "лет", "г"}:
+        if not n.is_integer():
+            return None
+        return relativedelta(years=int(n))
+
+    secs = _UNIT_SECONDS.get(unit)
+
+    if secs is None:
+        return None
+
+    return timedelta(seconds=round(n * secs))
+
 
 # --- относительное с цифрой -------------------------------------------------
 
 _RE_REL = re.compile(
-    r"через\s+(\d+(?:[.,]\d+)?)\s*"
+    r"через\s+(\d+(?:[.,]\d+)?)\s+"
     r"(минут\w*|мин|м|час\w*|ч|день|дня|дней|дн|д|суток|сутки|"
-    r"недел\w*|нед|месяц\w*|мес|год\w*|лет|г)\b"
+    r"недел\w*|нед|месяц(?:а|ев)?|мес|год(?:а|ов|ы)?|лет|г)\b"
 )
 
 _UNIT_SECONDS = {
@@ -41,32 +63,23 @@ _UNIT_SECONDS = {
     "неделю": 604800,
     "недели": 604800,
     "недель": 604800,
-    "мес": 2592000,
-    "месяц": 2592000,
-    "месяца": 2592000,
-    "месяцев": 2592000,
-    "г": 31536000,
-    "год": 31536000,
-    "года": 31536000,
-    "лет": 31536000,
-    "годов": 31536000,
 }
 
 
-def _match_rel_number(text: str) -> timedelta | None:
+def _match_rel_number(text: str) -> timedelta | relativedelta | None:
     m = _RE_REL.search(text)
     if not m:
         return None
+
     try:
         n = float(m.group(1).replace(",", "."))
     except ValueError:
         return None
+
     if n <= 0:
         return None
-    secs = _UNIT_SECONDS.get(m.group(2))
-    if not secs:
-        return None
-    return timedelta(seconds=round(n * secs))
+
+    return _make_delta(n, m.group(2))
 
 
 # --- относительное словом ---------------------------------------------------
@@ -111,7 +124,7 @@ _NUM_WORDS: dict[str, float] = {
 _RE_REL_NUM_WORD = re.compile(
     r"через\s+(" + "|".join(_NUM_WORDS.keys()) + r")\s+"
     r"(минут\w*|мин|м|час\w*|ч|день|дня|дней|дн|д|суток|сутки|"
-    r"недел\w*|нед|месяц\w*|мес|год\w*|лет|г)\b"
+    r"недел\w*|нед|месяц(?:а|ев)?|мес|год(?:а|ов|ы)?|лет|г)\b"
 )
 
 
@@ -119,21 +132,31 @@ def _match_rel_num_word(text: str) -> timedelta | None:
     m = _RE_REL_NUM_WORD.search(text)
     if not m:
         return None
+
     n = _NUM_WORDS.get(m.group(1))
     if not n or n <= 0:
         return None
-    secs = _UNIT_SECONDS.get(m.group(2))
-    if not secs:
-        return None
-    return timedelta(seconds=round(n * secs))
+
+    return _make_delta(float(n), m.group(2))
 
 
-def _match_rel_word(text: str) -> timedelta | None:
+def _match_rel_word(text: str):
     m = _RE_REL_WORD.search(text)
+
     if not m:
         return None
-    secs = _WORD_SECONDS.get(m.group(1))
-    return timedelta(seconds=secs) if secs else None
+
+    word = m.group(1)
+
+    if word == "месяц":
+        return relativedelta(months=1)
+
+    if word == "год":
+        return relativedelta(years=1)
+
+    secs = _WORD_SECONDS.get(word)
+
+    return timedelta(seconds=secs) if secs is not None else None
 
 
 # --- части дня --------------------------------------------------------------
@@ -219,7 +242,7 @@ _WEEKDAYS = {
     "вс": 6,
 }
 _RE_WEEKDAY = re.compile(
-    r"\bв\s+(?:следующий\s+)?(" + "|".join(_WEEKDAYS.keys()) + r")[а-я]*"
+    r"\bв\s+(?:следующ(?:ий|ую|ее)\s+)?(" + "|".join(_WEEKDAYS.keys()) + r")[а-я]*\b"
     r"(?:\s+в\s+(\d{1,2})(?::(\d{2}))?)?"
 )
 
@@ -267,8 +290,11 @@ def _parse_absolute_date(text: str, local_now: datetime):
 
 
 def _build_date(local_now, day, month, year, hh, mm):
+    year_was_specified = year is not None
+
     if year is None:
         year = local_now.year
+
     try:
         candidate = local_now.replace(
             year=year,
@@ -281,11 +307,16 @@ def _build_date(local_now, day, month, year, hh, mm):
         )
     except ValueError:
         return None
-    if year == local_now.year and candidate <= local_now:
+
+    if candidate <= local_now:
+        if year_was_specified:
+            return None
+
         try:
             candidate = candidate.replace(year=year + 1)
         except ValueError:
             return None
+
     return candidate
 
 
@@ -293,15 +324,29 @@ def _parse_weekday(text: str, local_now: datetime):
     m = _RE_WEEKDAY.search(text)
     if not m:
         return None
+
     target_wd = _WEEKDAYS.get(m.group(1))
     if target_wd is None:
         return None
+
     hh = int(m.group(2)) if m.group(2) else 9
     mm = int(m.group(3)) if m.group(3) else 0
+
     if not _valid_time(hh, mm):
         return None
+
     days_ahead = (target_wd - local_now.weekday()) % 7
-    return _at_time(local_now + timedelta(days=days_ahead), hh, mm)
+
+    candidate = _at_time(
+        local_now + timedelta(days=days_ahead),
+        hh,
+        mm,
+    )
+
+    if candidate <= local_now:
+        candidate += timedelta(days=7)
+
+    return candidate
 
 
 def _parse_day_part(text: str, local_now: datetime):
@@ -400,17 +445,17 @@ def parse_due(text: str, now: datetime) -> datetime | None:
     # 1. "через N единиц" — самое специфичное
     delta = _match_rel_number(normalized)
     if delta is not None:
-        return (now + delta).astimezone(timezone.utc)
+        return (local_now + delta).astimezone(timezone.utc)
 
         # 2. "через одну/две/... единиц" (числительное прописью)
     delta = _match_rel_num_word(normalized)
     if delta is not None:
-        return (now + delta).astimezone(timezone.utc)
+        return (local_now + delta).astimezone(timezone.utc)
 
     # 2. "через <слово>"
     delta = _match_rel_word(normalized)
     if delta is not None:
-        return (now + delta).astimezone(timezone.utc)
+        return (local_now + delta).astimezone(timezone.utc)
 
     # 3. Абсолютная дата (20 сентября, 20.09, 20.09.2026 [в HH:MM])
     r = _parse_absolute_date(normalized, local_now)
