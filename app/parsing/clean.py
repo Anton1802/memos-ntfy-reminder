@@ -64,6 +64,7 @@ def clean_reminder_text(content: str, phrases: list[str] | tuple[str, ...] | Non
 
     text = _TAG_RE.sub(" ", content)
     phrases = phrases or config.TRIGGER_PHRASES
+
     spans = _find_spans(text, tuple(phrases))
     if spans:
         text = _cut_spans(text, spans)
