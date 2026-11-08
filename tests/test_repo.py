@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-import time
-
 import pytest
 
-from app.store import db, repo
+from app.store import database, repo
 
 
 @pytest.fixture
 def conn(tmp_path):
-    c = db.connect(tmp_path / "test.db")
-    db.init_schema(c)
+    c = database.connect(tmp_path / "test.db")
+    database.init_schema(c)
     yield c
     c.close()
 
@@ -61,6 +59,5 @@ def test_check_constraint_status(conn):
 
     with pytest.raises(sqlite3.IntegrityError):
         conn.execute(
-            "INSERT INTO reminders (memo_id, text, due_at, status, created_at, attempts)"
-            " VALUES ('x','y',1,'bogus',0,0)"
+            "INSERT INTO reminders (memo_id, text, due_at, status, created_at, attempts) VALUES ('x','y',1,'bogus',0,0)"
         )

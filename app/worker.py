@@ -7,7 +7,7 @@ from datetime import datetime
 from app.config import LOCAL_TIMEZONE, config
 from app.memos.client import add_comment, archive_memo, get_memo
 from app.notifier.ntfy import send_reminder
-from app.store import db, repo
+from app.store import database, repo
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
 
 
 def run_loop(db_path: str, stop_event: threading.Event) -> None:
-    conn = db.connect(db_path)
+    conn = database.connect(db_path)
     log.info("worker started, interval=%ss", config.WORKER_INTERVAL)
 
     try:

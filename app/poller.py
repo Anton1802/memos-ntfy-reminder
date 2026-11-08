@@ -8,7 +8,7 @@ from app.config import LOCAL_TIMEZONE, config
 from app.memos.client import add_comment, list_memos
 from app.parsing.clean import clean_reminder_text
 from app.parsing.time_parser import parse_due
-from app.store import db, repo
+from app.store import database, repo
 from app.triggers.matcher import is_reminder
 
 log = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
 
 
 def run_loop(db_path: str, stop_event: threading.Event) -> None:
-    conn = db.connect(db_path)
+    conn = database.connect(db_path)
     log.info("Poller started, interval=%ss", config.POLL_INTERVAL)
 
     try:

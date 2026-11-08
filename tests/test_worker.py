@@ -5,14 +5,14 @@ from unittest.mock import patch
 import pytest
 
 from app.memos.models import Memo
-from app.store import db, repo
+from app.store import database, repo
 from app.worker import run_once
 
 
 @pytest.fixture
 def conn(tmp_path):
-    c = db.connect(tmp_path / "test.db")
-    db.init_schema(c)
+    c = database.connect(tmp_path / "test.db")
+    database.init_schema(c)
     yield c
     c.close()
 
@@ -61,9 +61,7 @@ def test_cancel_on_404(mock_get, mock_send, conn):
 
     assert run_once(conn, now_ts=200) == 0
     mock_send.assert_not_called()
-    assert (
-        conn.execute("SELECT status FROM reminders").fetchone()["status"] == "cancelled"
-    )
+    assert conn.execute("SELECT status FROM reminders").fetchone()["status"] == "cancelled"
 
 
 @patch("app.worker.send_reminder")
@@ -74,9 +72,7 @@ def test_cancel_on_archived(mock_get, mock_send, conn):
 
     assert run_once(conn, now_ts=200) == 0
     mock_send.assert_not_called()
-    assert (
-        conn.execute("SELECT status FROM reminders").fetchone()["status"] == "cancelled"
-    )
+    assert conn.execute("SELECT status FROM reminders").fetchone()["status"] == "cancelled"
 
 
 @patch("app.worker.archive_memo")

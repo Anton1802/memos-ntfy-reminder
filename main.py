@@ -5,7 +5,7 @@ import threading
 from app.config import config
 from app.logger import setup_logging
 from app.poller import run_loop as poller_loop
-from app.store import db
+from app.store import database
 from app.worker import run_loop as worker_loop
 
 
@@ -13,8 +13,8 @@ def main() -> None:
     setup_logging(config.LOGGING_LEVEL)
     log = logging.getLogger(__name__)
 
-    boot_conn = db.connect(config.DATABASE_PATH)
-    db.init_schema(boot_conn)
+    boot_conn = database.connect(config.DATABASE_PATH)
+    database.init_schema(boot_conn)
     boot_conn.close()
 
     stop = threading.Event()
