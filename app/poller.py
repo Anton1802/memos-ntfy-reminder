@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -14,7 +15,7 @@ from app.triggers.matcher import is_reminder
 log = logging.getLogger(__name__)
 
 
-def _is_first_run(conn) -> bool:
+def _is_first_run(conn: sqlite3.Connection) -> bool:
     row = conn.execute("SELECT 1 FROM processed LIMIT 1").fetchone()
     return row is None
 

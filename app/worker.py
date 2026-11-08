@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 import time
 from datetime import datetime
 
@@ -18,7 +19,7 @@ def _format_message(text: str, due_at: int, now_ts: int) -> str:
     return text
 
 
-def run_once(conn, now_ts: int | None = None) -> int:
+def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
     """Один проход: забрал due, проверил живость заметки, отправил."""
     now_ts = int(time.time()) if now_ts is None else now_ts
     rows = repo.fetch_due(conn, now_ts=now_ts)
