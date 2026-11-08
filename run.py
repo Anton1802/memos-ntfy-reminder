@@ -15,7 +15,6 @@ def main() -> None:
     setup_logging(config.LOGGING_LEVEL)
     log = logging.getLogger(__name__)
 
-    # только для init schema
     boot_conn = db.connect(config.DATABASE_PATH)
     db.init_schema(boot_conn)
     boot_conn.close()
@@ -29,18 +28,8 @@ def main() -> None:
     signal.signal(signal.SIGTERM, _on_signal)
     signal.signal(signal.SIGINT, _on_signal)
 
-    poller = threading.Thread(
-        target=poller_loop,
-        args=(config.DATABASE_PATH, stop),
-        name="poller",
-        daemon=False,
-    )
-    worker = threading.Thread(
-        target=worker_loop,
-        args=(config.DATABASE_PATH, stop),
-        name="worker",
-        daemon=False,
-    )
+    poller = threading.Thread(target=poller_loop, args=(config.DATABASE_PATH, stop), name="poller", daemon=False)
+    worker = threading.Thread(target=worker_loop, args=(config.DATABASE_PATH, stop), name="worker", daemon=False)
 
     poller.start()
     worker.start()
