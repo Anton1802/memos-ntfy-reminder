@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 
 from app.config import LOCAL_TIMEZONE, config
+from app.enums import Emoji
 from app.memos.client import add_comment, archive_memo, get_memo
 from app.notifier.ntfy import send_reminder
 from app.store import database, repository
@@ -45,14 +46,14 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
                     log.warning("worker: sent but archive failed memo=%s", row["memo_id"])
 
                 now_local = datetime.fromtimestamp(now_ts, tz=LOCAL_TIMEZONE)
-                add_comment(row["memo_id"], f"✅ [memos-ntfy-reminder] Отправлено {now_local:%d.%m.%Y %H:%M}")
+                add_comment(row["memo_id"], f"{Emoji.OK} Отправлено {now_local:%d.%m.%Y %H:%M}")
 
             sent += 1
             log.info("worker: sent reminder id=%s", row["id"])
         else:
             repository.mark_error(conn, row["id"], when=now_ts)
             attempts = row["attempts"] + 1
-            add_comment(row["memo_id"], f"⚠️ [memos-ntfy-reminder] Ошибка отправки (попытка {attempts})")
+            add_comment(row["memo_id"], f"{Emoji.WARNING} Ошибка отправки (попытка {attempts})")
             log.warning("worker: failed reminder id=%s attempts=%s", row["id"], attempts)
 
     return sent

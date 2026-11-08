@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 from app.config import LOCAL_TIMEZONE, config
+from app.enums import Emoji
 from app.memos.client import add_comment, list_memos
 from app.parsing.clean import clean_reminder_text
 from app.parsing.time_parser import parse_due
@@ -48,7 +49,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
         if ok:
             added += 1
             due_local = due.astimezone(LOCAL_TIMEZONE)
-            add_comment(memo.id, f"⏳ [memos-ntfy-reminder] Взято в работу. Отправлю {due_local:%d.%m.%Y %H:%M}")
+            add_comment(memo.id, f"{Emoji.PROCESSED} Взято в работу. Отправлю {due_local:%d.%m.%Y %H:%M}")
             log.info("poller: added reminder memo=%s due=%s", memo.id, due.isoformat())
 
         repository.mark_processed(conn, memo.id, when=now_ts)
