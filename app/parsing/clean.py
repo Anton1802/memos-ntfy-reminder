@@ -53,9 +53,7 @@ def _cut_spans(text: str, spans: list[tuple[int, int]]) -> str:
     return text
 
 
-def clean_reminder_text(
-    content: str, phrases: list[str] | tuple[str, ...] | None = None
-) -> str:
+def clean_reminder_text(content: str, phrases: list[str] | tuple[str, ...] | None = None) -> str:
     """Чистит текст заметки для пуша: убирает теги и триггер-фразы, схлопывает пробелы.
 
     Время намеренно НЕ вырезается — оно полезно в тексте пуша.
