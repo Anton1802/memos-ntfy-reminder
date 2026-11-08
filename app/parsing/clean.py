@@ -9,12 +9,10 @@ _WHITESPACE_RE = re.compile(r"\s+")
 
 
 def _normalize_len_preserving(text: str) -> str:
-    """lower + ё→е. Длина строки сохраняется — можно резать оригинал по индексам."""
     return text.replace("ё", "е").replace("Ё", "Е").lower()
 
 
 def _find_spans(text: str, phrases: tuple[str, ...]) -> list[tuple[int, int]]:
-    """Возвращает непересекающиеся спаны всех вхождений фраз в text (по нормализованной копии)."""
     norm = _normalize_len_preserving(text)
     spans: list[tuple[int, int]] = []
     for phrase in phrases:
@@ -34,7 +32,6 @@ def _find_spans(text: str, phrases: tuple[str, ...]) -> list[tuple[int, int]]:
     if not spans:
         return []
 
-    # Сортируем и сливаем пересечения/соседние
     spans.sort()
     merged: list[tuple[int, int]] = [spans[0]]
     for s, e in spans[1:]:
@@ -47,18 +44,12 @@ def _find_spans(text: str, phrases: tuple[str, ...]) -> list[tuple[int, int]]:
 
 
 def _cut_spans(text: str, spans: list[tuple[int, int]]) -> str:
-    """Вырезает спаны, идя с конца, чтобы не сбить индексы."""
     for s, e in reversed(spans):
         text = text[:s] + " " + text[e:]
     return text
 
 
 def clean_reminder_text(content: str, phrases: list[str] | tuple[str, ...] | None = None) -> str:
-    """Чистит текст заметки для пуша: убирает теги и триггер-фразы, схлопывает пробелы.
-
-    Время намеренно НЕ вырезается — оно полезно в тексте пуша.
-    Регистр и буква «ё» в остатке сохраняются.
-    """
     if not content or not content.strip():
         return ""
 

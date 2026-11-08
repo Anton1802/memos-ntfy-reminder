@@ -22,10 +22,6 @@ def _is_first_run(conn: sqlite3.Connection) -> bool:
 
 
 def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
-    """Один проход: опросил Memos, положил новые напоминания.
-
-    Возвращает число добавленных reminders.
-    """
     now_ts = int(time.time()) if now_ts is None else now_ts
     now_dt = datetime.fromtimestamp(now_ts, tz=timezone.utc)
 
@@ -37,7 +33,6 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
         if memo.state != "NORMAL" or repo.is_processed(conn, memo.id):
             continue
 
-        # Первый запуск: старые заметки помечаем processed, но не обрабатываем
         if cutoff is not None and int(memo.create_time.timestamp()) < cutoff or not is_reminder(memo):
             repo.mark_processed(conn, memo.id, when=now_ts)
             continue
@@ -48,7 +43,6 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
 
         text = clean_reminder_text(memo.content)
         if not text:
-            # после чистки пусто — нечего слать
             repo.mark_processed(conn, memo.id, when=now_ts)
             continue
 

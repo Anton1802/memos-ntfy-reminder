@@ -8,11 +8,6 @@ log = logging.getLogger(__name__)
 
 
 def send_reminder(text: str, title: str = "Напоминание") -> bool:
-    """Отправляет пуш в ntfy. True при 2xx, False при любой ошибке.
-
-    Топик уходит в JSON (NTFY_URL — только база без пути).
-    """
-
     if not text or not text.strip():
         log.warning("send_reminder: пустой текст, пропускаем")
         return False

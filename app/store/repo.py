@@ -17,14 +17,12 @@ def mark_processed(conn: sqlite3.Connection, memo_id: str, when: int | None = No
 
 
 def mark_cancelled(conn: sqlite3.Connection, reminder_id: int, when: int | None = None) -> None:
-    """Помечает reminder отменённым (заметку удалили/архивировали до отправки)."""
     ts = int(time.time()) if when is None else when
     query = "UPDATE reminders SET status='cancelled', sent_at=? WHERE id=?"
     conn.execute(query, (ts, reminder_id))
 
 
 def add_reminder(conn: sqlite3.Connection, memo_id: str, text: str, due_at: int, created_at: int | None = None) -> bool:
-    """True если добавили, False если такой memo_id уже есть (дедуп)."""
     ts = int(time.time()) if created_at is None else created_at
     query = "INSERT OR IGNORE INTO reminders (memo_id, text, due_at, status, created_at, attempts) VALUES (?, ?, ?, 'pending', ?, 0)"
     cur = conn.execute(query, (memo_id, text, due_at, ts))
@@ -32,7 +30,6 @@ def add_reminder(conn: sqlite3.Connection, memo_id: str, text: str, due_at: int,
 
 
 def fetch_due(conn: sqlite3.Connection, now_ts: int, limit: int = 50) -> list[sqlite3.Row]:
-    """Pending + error с исчерпанными попытками НЕ берём. Порядок — по due_at."""
     query = """
         SELECT id, memo_id, text, due_at, attempts
         FROM reminders

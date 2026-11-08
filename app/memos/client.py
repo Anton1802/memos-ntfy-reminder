@@ -13,7 +13,6 @@ HEADERS = {"Authorization": f"Bearer {config.MEMOS_TOKEN}"}
 
 
 def list_memos(limit: int = 200) -> list[Memo]:
-    """Возвращает список заметок. Пустой список при ошибке."""
     try:
         url = f"{config.MEMOS_URL}/api/v1/memos"
         params = {"pageSize": limit}
@@ -37,7 +36,6 @@ def list_memos(limit: int = 200) -> list[Memo]:
 
 
 def archive_memo(memo_id: str) -> bool:
-    """Архивирует заметку. True при 2xx."""
     try:
         url = f"{config.MEMOS_URL}/api/v1/{memo_id}"
         params = {"updateMask": "state"}
@@ -55,12 +53,6 @@ def archive_memo(memo_id: str) -> bool:
 
 
 def get_memo(memo_id: str) -> tuple[str, Memo | None]:
-    """Возвращает ('ok', memo) | ('not_found', None) | ('error', None).
-
-    - 'ok'        — заметка есть, memo заполнен
-    - 'not_found' — 404, заметки нет (удалили)
-    - 'error'     — сеть/5xx/битый ответ
-    """
     try:
         url = f"{config.MEMOS_URL}/api/v1/{memo_id}"
         response = requests.get(url, headers=HEADERS, timeout=config.MEMOS_TIMEOUT)
@@ -83,7 +75,6 @@ def get_memo(memo_id: str) -> tuple[str, Memo | None]:
 
 
 def add_comment(memo_id: str, text: str) -> bool:
-    """Добавляет комментарий к заметке. True при 2xx."""
     if not text or not text.strip():
         return False
 

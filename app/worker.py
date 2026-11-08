@@ -20,7 +20,6 @@ def _format_message(text: str, due_at: int, now_ts: int) -> str:
 
 
 def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
-    """Один проход: забрал due, проверил живость заметки, отправил."""
     now_ts = int(time.time()) if now_ts is None else now_ts
     rows = repo.fetch_due(conn, now_ts=now_ts)
 
