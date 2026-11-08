@@ -64,6 +64,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
 def run_loop(db_path, stop_event) -> None:
     conn = db.connect(db_path)
     log.info("worker started, interval=%ss", config.WORKER_INTERVAL)
+
     try:
         while not stop_event.is_set():
             try:
