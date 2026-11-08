@@ -34,6 +34,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
         if cutoff is not None and int(memo.create_time.timestamp()) < cutoff or not is_reminder(memo):
             repository.mark_processed(conn, memo.id, when=now_ts)
             continue
+
         due = parse_due(memo.content, now_dt)
         if due is None:
             due = now_dt + timedelta(minutes=config.TRIGGER_DEFAULT_MINUTES)
