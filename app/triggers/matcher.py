@@ -7,7 +7,7 @@ _NORMALIZED_PHRASES = normalized_phrases()
 
 
 def is_reminder(memo: Memo | None, phrases: list[str] | None = None) -> bool:
-    if not memo or not isinstance(memo.content, str) or not memo.content.strip():
+    if not memo or not memo.content.strip():
         return False
 
     normalized = normalize(memo.content)
