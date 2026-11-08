@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+import threading
 import time
 from datetime import datetime
 
@@ -58,7 +59,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
     return sent
 
 
-def run_loop(db_path, stop_event) -> None:
+def run_loop(db_path: str, stop_event: threading.Event) -> None:
     conn = db.connect(db_path)
     log.info("worker started, interval=%ss", config.WORKER_INTERVAL)
 
