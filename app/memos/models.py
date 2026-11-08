@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Literal
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Memo:
     id: str
     content: str
@@ -15,8 +15,6 @@ class Memo:
         return cls(
             id=data["name"],
             content=data["content"],
-            create_time=datetime.fromisoformat(
-                data["createTime"].replace("Z", "+00:00")
-            ),
+            create_time=datetime.fromisoformat(data["createTime"].replace("Z", "+00:00")),
             state=data["state"],
         )
