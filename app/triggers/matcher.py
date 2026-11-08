@@ -13,4 +13,4 @@ def is_reminder(memo: Memo | None, phrases: list[str] | None = None) -> bool:
     normalized = normalize(memo.content)
     if phrases is None:
         return any(phrase in normalized for phrase in _NORMALIZED_PHRASES)
-    return any(normalize(p) in normalized for p in phrases if p.strip())
+    return any(normalize(phrase) in normalized for phrase in phrases if phrase.strip())
