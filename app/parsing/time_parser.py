@@ -42,8 +42,6 @@ _UNIT_SECONDS = {
 
 _WORD_SECONDS: dict[str, int] = {
     "полчаса": 1800,
-    "пару часов": 7200,
-    "пару минут": 120,
     "минуту": 60,
     "час": 3600,
     "день": 86400,
@@ -53,7 +51,6 @@ _WORD_SECONDS: dict[str, int] = {
     "год": 31536000,
 }
 _WORD_KEYS_SORTED = tuple(sorted(_WORD_SECONDS.keys(), key=len, reverse=True))
-
 _RE_REL_WORD = re.compile(r"через\s+(" + "|".join(re.escape(k) for k in _WORD_KEYS_SORTED) + r")\b")
 
 _NUM_WORDS: dict[str, float] = {
