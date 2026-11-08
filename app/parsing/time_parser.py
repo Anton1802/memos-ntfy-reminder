@@ -228,6 +228,24 @@ def _local_9(local: datetime) -> datetime:
     return local.replace(hour=9, minute=0, second=0, microsecond=0)
 
 
+def _build_date(local_now: datetime, day: int, month: int, year: int, hh: int, mm: int) -> datetime | None:
+    try:
+        candidate = local_now.replace(year=year, month=month, day=day, hour=hh, minute=mm, second=0, microsecond=0)
+    except ValueError:
+        return None
+
+    if candidate <= local_now:
+        if year:
+            return None
+
+        try:
+            candidate = candidate.replace(year=year + 1)
+        except ValueError:
+            return None
+
+    return candidate
+
+
 def _parse_absolute_date(text: str, local_now: datetime) -> datetime | None:
     # Пиздец, я не знаю что это такое
     m = _RE_DATE_WORD.search(text)
@@ -249,24 +267,6 @@ def _parse_absolute_date(text: str, local_now: datetime) -> datetime | None:
         mm = int(m.group(5)) if m.group(5) else 0
         if 1 <= day <= 31 and 1 <= month <= 12 and _valid_time(hh, mm):
             return _build_date(local_now, day, month, year, hh, mm)
-
-
-def _build_date(local_now: datetime, day: int, month: int, year: int, hh: int, mm: int) -> datetime | None:
-    try:
-        candidate = local_now.replace(year=year, month=month, day=day, hour=hh, minute=mm, second=0, microsecond=0)
-    except ValueError:
-        return None
-
-    if candidate <= local_now:
-        if year:
-            return None
-
-        try:
-            candidate = candidate.replace(year=year + 1)
-        except ValueError:
-            return None
-
-    return candidate
 
 
 def _parse_weekday(text: str, local_now: datetime) -> datetime | None:
