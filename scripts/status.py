@@ -7,18 +7,13 @@ from typing import Any, TextIO
 from app.config import config
 
 STATUS = frozenset({"pending", "sent", "error", "cancelled"})
-
-
 SELECT_REMINDERS = """
     SELECT id, memo_id, text, due_at, status, created_at, sent_at, attempts
     FROM reminders
 """
 
 
-def get_data_from_database(
-    db_path: str,
-    statuses: Iterable[str],
-) -> tuple[list[str], dict[str, list[sqlite3.Row]]]:
+def get_data_from_database(db_path: str, statuses: Iterable[str]) -> tuple[list[str], dict[str, list[sqlite3.Row]]]:
     """Загружает напоминания из БД, сгруппированные по статусу.
 
     ИЗМЕНЕНО: возвращает кортеж (columns, data), где columns — имена
