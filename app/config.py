@@ -56,7 +56,6 @@ def load_config_from_dotenv() -> Config:
     )
 
 
-# Вообще так делать наверное не стоит, но пока сойдёт
 config = load_config_from_dotenv()
-# Не придумал куда сунуть пускай живёт здесь
+
 LOCAL_TIMEZONE = ZoneInfo(config.TIMEZONE)
