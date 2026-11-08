@@ -11,4 +11,4 @@ def normalize_index_safe(text: str) -> str:
 
 def normalized_phrases(phrases: list[str] | tuple[str, ...] | None = None) -> tuple[str, ...]:
     source = config.TRIGGER_PHRASES if phrases is None else phrases
-    return tuple(normalize(p) for p in source if p and p.strip())
+    return tuple(normalize(phrase) for phrase in source if phrase and phrase.strip())
