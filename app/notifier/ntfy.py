@@ -4,11 +4,9 @@ import logging
 
 import requests
 
-from app.config import NTFY_URL, NTFY_TOPIC, NTFY_TOKEN
+from app.config import config
 
 log = logging.getLogger(__name__)
-
-_TIMEOUT = 10
 
 
 def send_reminder(text: str, title: str = "Напоминание") -> bool:
@@ -20,23 +18,28 @@ def send_reminder(text: str, title: str = "Напоминание") -> bool:
         log.warning("send_reminder: пустой текст, пропускаем")
         return False
 
-    if not NTFY_TOPIC:
+    if not config.NTFY_TOPIC:
         log.error("send_reminder: NTFY_TOPIC не задан")
         return False
 
     payload = {
-        "topic": NTFY_TOPIC,
+        "topic": config.NTFY_TOPIC,
         "title": title,
         "message": text,
         "priority": 4,
         "tags": ["bell"],
     }
     headers = {}
-    if NTFY_TOKEN:
-        headers["Authorization"] = f"Bearer {NTFY_TOKEN}"
+    if config.NTFY_TOKEN:
+        headers["Authorization"] = f"Bearer {config.NTFY_TOKEN}"
 
     try:
-        r = requests.post(NTFY_URL, json=payload, headers=headers, timeout=_TIMEOUT)
+        r = requests.post(
+            config.NTFY_URL,
+            json=payload,
+            headers=headers,
+            timeout=config.NTFY_TIMEOUT,
+        )
     except requests.RequestException as e:
         log.error("ntfy request failed: %s", e)
         return False

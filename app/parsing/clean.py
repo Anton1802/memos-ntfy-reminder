@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from app.config import TRIGGER_PHRASES
+from app.config import config
 
 _TAG_RE = re.compile(r"#\S+")
 _WHITESPACE_RE = re.compile(r"\s+")
@@ -67,7 +67,7 @@ def clean_reminder_text(
 
     # 2. Триггер-фразы
     if phrases is None:
-        phrases = TRIGGER_PHRASES
+        phrases = config.TRIGGER_PHRASES
     spans = _find_spans(text, tuple(phrases))
     if spans:
         text = _cut_spans(text, spans)

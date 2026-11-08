@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from app.config import TRIGGER_PHRASES
-
 from app.parsing.normalize import normalize, normalized_phrases
 
 _NORMALIZED_PHRASES = normalized_phrases()

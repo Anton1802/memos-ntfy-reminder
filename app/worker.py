@@ -2,26 +2,18 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime
 
-from app.config import WORKER_INTERVAL
-from app.memos.client import archive_memo, get_memo, add_comment
+from app.config import LOCAL_TIMEZONE, config
+from app.memos.client import add_comment, archive_memo, get_memo
 from app.notifier.ntfy import send_reminder
 from app.store import db, repo
 
-from zoneinfo import ZoneInfo
-from app.config import TZ
-from datetime import datetime
-
-_LOCAL_TZ = ZoneInfo(TZ)
-
-
 log = logging.getLogger(__name__)
-
-OVERDUE_THRESHOLD_SECONDS = 60
 
 
 def _format_message(text: str, due_at: int, now_ts: int) -> str:
-    if now_ts - due_at > OVERDUE_THRESHOLD_SECONDS:
+    if now_ts - due_at > config.OVERDUE_THRESHOLD_SECONDS:
         return f"{text} (опоздало)"
     return text
 
@@ -58,7 +50,7 @@ def run_once(conn, now_ts: int | None = None) -> int:
                     log.warning(
                         "worker: sent but archive failed memo=%s", row["memo_id"]
                     )
-                now_local = datetime.fromtimestamp(now_ts, tz=_LOCAL_TZ)
+                now_local = datetime.fromtimestamp(now_ts, tz=LOCAL_TIMEZONE)
                 add_comment(
                     row["memo_id"],
                     f"✅ [memos-ntfy-reminder] Отправлено {now_local:%d.%m.%Y %H:%M}",
@@ -82,7 +74,7 @@ def run_once(conn, now_ts: int | None = None) -> int:
 
 def run_loop(db_path, stop_event) -> None:
     conn = db.connect(db_path)
-    log.info("worker started, interval=%ss", WORKER_INTERVAL)
+    log.info("worker started, interval=%ss", config.WORKER_INTERVAL)
     try:
         while not stop_event.is_set():
             try:
@@ -91,7 +83,7 @@ def run_loop(db_path, stop_event) -> None:
                     log.info("worker: sent %d", n)
             except Exception:
                 log.exception("worker: run_once failed")
-            stop_event.wait(WORKER_INTERVAL)
+            stop_event.wait(config.WORKER_INTERVAL)
     finally:
         conn.close()
         log.info("worker stopped")

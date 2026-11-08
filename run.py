@@ -4,18 +4,19 @@ import logging
 import signal
 import threading
 
-from app.config import DB_PATH, setup_logging
+from app.config import config
+from app.logger import setup_logging
 from app.poller import run_loop as poller_loop
 from app.store import db
 from app.worker import run_loop as worker_loop
 
 
 def main() -> None:
-    setup_logging()
-    log = logging.getLogger("run")
+    setup_logging(config.LOGGING_LEVEL)
+    log = logging.getLogger(__name__)
 
     # только для init schema
-    boot_conn = db.connect(DB_PATH)
+    boot_conn = db.connect(config.DATABASE_PATH)
     db.init_schema(boot_conn)
     boot_conn.close()
 
@@ -29,10 +30,16 @@ def main() -> None:
     signal.signal(signal.SIGINT, _on_signal)
 
     poller = threading.Thread(
-        target=poller_loop, args=(DB_PATH, stop), name="poller", daemon=False
+        target=poller_loop,
+        args=(config.DATABASE_PATH, stop),
+        name="poller",
+        daemon=False,
     )
     worker = threading.Thread(
-        target=worker_loop, args=(DB_PATH, stop), name="worker", daemon=False
+        target=worker_loop,
+        args=(config.DATABASE_PATH, stop),
+        name="worker",
+        daemon=False,
     )
 
     poller.start()

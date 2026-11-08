@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
+
 from dateutil.relativedelta import relativedelta
 
-from app.config import TZ
+from app.config import LOCAL_TIMEZONE
 
-_LOCAL_TZ = ZoneInfo(TZ)
 _FALLBACK = object()  # сигнал: парсер матчит, но нужен fallback (stop, return None)
 
 # --- для календарных дней, лет, месяцев --------------------------------------------------
@@ -440,7 +439,7 @@ def parse_due(text: str, now: datetime) -> datetime | None:
         return None
 
     normalized = re.sub(r"\s+", " ", text.casefold().replace("ё", "е")).strip()
-    local_now = now.astimezone(_LOCAL_TZ)
+    local_now = now.astimezone(LOCAL_TIMEZONE)
 
     # 1. "через N единиц" — самое специфичное
     delta = _match_rel_number(normalized)

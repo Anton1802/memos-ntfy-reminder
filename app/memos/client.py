@@ -4,31 +4,27 @@ import logging
 
 import requests
 
-from app.config import MEMOS_TOKEN, MEMOS_URL
+from app.config import config
 from app.memos.models import Memo
-
-from datetime import datetime
 
 log = logging.getLogger(__name__)
 
-_TIMEOUT = 10
-
 
 def _headers() -> dict[str, str]:
-    h = {"Content-Type": "application/json"}
-    if MEMOS_TOKEN:
-        h["Authorization"] = f"Bearer {MEMOS_TOKEN}"
-    return h
+    headers = {"Content-Type": "application/json"}
+    if config.MEMOS_TOKEN:
+        headers["Authorization"] = f"Bearer {config.MEMOS_TOKEN}"
+    return headers
 
 
 def list_memos(limit: int = 200) -> list[Memo]:
     """Возвращает список заметок. Пустой список при ошибке."""
     try:
         r = requests.get(
-            f"{MEMOS_URL}/api/v1/memos",
+            f"{config.MEMOS_URL}/api/v1/memos",
             headers=_headers(),
             params={"pageSize": limit},
-            timeout=_TIMEOUT,
+            timeout=config.MEMOS_TIMEOUT,
         )
     except requests.RequestException as e:
         log.error("memos list failed: %s", e)
@@ -51,11 +47,11 @@ def archive_memo(memo_id: str) -> bool:
     """Архивирует заметку. True при 2xx."""
     try:
         r = requests.patch(
-            f"{MEMOS_URL}/api/v1/{memo_id}",
+            f"{config.MEMOS_URL}/api/v1/{memo_id}",
             params={"updateMask": "state"},
             json={"state": "ARCHIVED"},
             headers=_headers(),
-            timeout=_TIMEOUT,
+            timeout=config.MEMOS_TIMEOUT,
         )
     except requests.RequestException as e:
         log.error("memos archive failed: %s", e)
@@ -77,9 +73,9 @@ def get_memo(memo_id: str) -> tuple[str, Memo | None]:
     """
     try:
         r = requests.get(
-            f"{MEMOS_URL}/api/v1/{memo_id}",
+            f"{config.MEMOS_URL}/api/v1/{memo_id}",
             headers=_headers(),
-            timeout=_TIMEOUT,
+            timeout=config.MEMOS_TIMEOUT,
         )
     except requests.RequestException as e:
         log.error("memos get failed: %s", e)
@@ -105,14 +101,15 @@ def add_comment(memo_id: str, text: str) -> bool:
         return False
     try:
         r = requests.post(
-            f"{MEMOS_URL}/api/v1/{memo_id}/comments",
+            f"{config.MEMOS_URL}/api/v1/{memo_id}/comments",
             json={"content": text},
             headers=_headers(),
-            timeout=_TIMEOUT,
+            timeout=config.MEMOS_TIMEOUT,
         )
     except requests.RequestException as e:
         log.error("memos comment failed: %s", e)
         return False
+
     if not r.ok:
         log.error("memos comment returned %s: %s", r.status_code, r.text[:200])
         return False

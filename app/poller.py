@@ -3,21 +3,12 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
-from app.config import TZ
-from app.memos.client import add_comment
 
-_LOCAL_TZ = ZoneInfo(TZ)
-
-from app.config import (
-    FIRST_RUN_LOOKBACK,
-    POLL_INTERVAL,
-    TRIGGER_DEFAULT_MINUTES,
-)
-from app.memos.client import list_memos
+from app.config import LOCAL_TIMEZONE, config
+from app.memos.client import add_comment, list_memos
 from app.parsing.clean import clean_reminder_text
 from app.parsing.time_parser import parse_due
-from app.store import repo, db
+from app.store import db, repo
 from app.triggers.matcher import is_reminder
 
 log = logging.getLogger(__name__)
@@ -37,7 +28,7 @@ def run_once(conn, now_ts: int | None = None) -> int:
     now_dt = datetime.fromtimestamp(now_ts, tz=timezone.utc)
 
     first_run = _is_first_run(conn)
-    cutoff = now_ts - FIRST_RUN_LOOKBACK if first_run else None
+    cutoff = now_ts - config.FIRST_RUN_LOOKBACK if first_run else None
 
     added = 0
     for memo in list_memos():
@@ -58,7 +49,7 @@ def run_once(conn, now_ts: int | None = None) -> int:
 
         due = parse_due(memo.content, now_dt)
         if due is None:
-            due = now_dt + timedelta(minutes=TRIGGER_DEFAULT_MINUTES)
+            due = now_dt + timedelta(minutes=config.TRIGGER_DEFAULT_MINUTES)
 
         text = clean_reminder_text(memo.content)
         if not text:
@@ -75,7 +66,7 @@ def run_once(conn, now_ts: int | None = None) -> int:
         )
         if ok:
             added += 1
-            due_local = due.astimezone(_LOCAL_TZ)
+            due_local = due.astimezone(LOCAL_TIMEZONE)
             add_comment(
                 memo.id,
                 f"⏳ [memos-ntfy-reminder] Взято в работу. Отправлю {due_local:%d.%m.%Y %H:%M}",
@@ -89,7 +80,7 @@ def run_once(conn, now_ts: int | None = None) -> int:
 
 def run_loop(db_path, stop_event) -> None:
     conn = db.connect(db_path)
-    log.info("poller started, interval=%ss", POLL_INTERVAL)
+    log.info("Poller started, interval=%ss", config.POLL_INTERVAL)
     try:
         while not stop_event.is_set():
             try:
@@ -98,7 +89,7 @@ def run_loop(db_path, stop_event) -> None:
                     log.info("poller: added %d reminder(s)", added)
             except Exception:
                 log.exception("poller: run_once failed")
-            stop_event.wait(POLL_INTERVAL)
+            stop_event.wait(config.POLL_INTERVAL)
     finally:
         conn.close()
         log.info("poller stopped")

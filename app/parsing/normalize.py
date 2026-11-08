@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.config import TRIGGER_PHRASES
+from app.config import config
 
 
 def normalize(text: str) -> str:
@@ -17,5 +17,5 @@ def normalized_phrases(
     phrases: list[str] | tuple[str, ...] | None = None,
 ) -> tuple[str, ...]:
     """Нормализованные непустые триггер-фразы. По умолчанию — из конфига."""
-    source = TRIGGER_PHRASES if phrases is None else phrases
+    source = config.TRIGGER_PHRASES if phrases is None else phrases
     return tuple(normalize(p) for p in source if p and p.strip())
