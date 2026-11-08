@@ -14,18 +14,18 @@ def _find_spans(text: str, phrases: tuple[str, ...]) -> list[tuple[int, int]]:
     norm = _normalize_len_preserving(text)
     spans: list[tuple[int, int]] = []
     for phrase in phrases:
-        p = _normalize_len_preserving(phrase).strip()
-        if not p:
+        normalized_phrase = _normalize_len_preserving(phrase).strip()
+        if not normalized_phrase:
             continue
 
         start = 0
         while True:
-            idx = norm.find(p, start)
+            idx = norm.find(normalized_phrase, start)
             if idx == -1:
                 break
 
-            spans.append((idx, idx + len(p)))
-            start = idx + len(p)
+            spans.append((idx, idx + len(normalized_phrase)))
+            start = idx + len(normalized_phrase)
 
     if not spans:
         return []
