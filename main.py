@@ -9,17 +9,22 @@ from app.store import database
 from app.worker import run_loop as worker_loop
 
 
+def _init_database_schema() -> None:
+    connection = database.connect(config.DATABASE_PATH)
+    database.init_schema(connection)
+    connection.close()
+
+
 def main() -> None:
     setup_logging(config.LOGGING_LEVEL)
     log = logging.getLogger(__name__)
 
-    boot_conn = database.connect(config.DATABASE_PATH)
-    database.init_schema(boot_conn)
-    boot_conn.close()
+    _init_database_schema()
+    log.info("Database schema created")
 
     stop = threading.Event()
 
-    def _on_signal(signum, frame):
+    def _on_signal(signum, _):
         log.info("received signal %s, shutting down", signum)
         stop.set()
 
