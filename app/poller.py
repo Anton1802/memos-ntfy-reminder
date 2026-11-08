@@ -34,18 +34,11 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
 
     added = 0
     for memo in list_memos():
-        if memo.state != "NORMAL":
-            continue
-
-        if repo.is_processed(conn, memo.id):
+        if memo.state != "NORMAL" or repo.is_processed(conn, memo.id):
             continue
 
         # Первый запуск: старые заметки помечаем processed, но не обрабатываем
-        if cutoff is not None and int(memo.create_time.timestamp()) < cutoff:
-            repo.mark_processed(conn, memo.id, when=now_ts)
-            continue
-
-        if not is_reminder(memo):
+        if cutoff is not None and int(memo.create_time.timestamp()) < cutoff or not is_reminder(memo):
             repo.mark_processed(conn, memo.id, when=now_ts)
             continue
 
@@ -59,20 +52,11 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
             repo.mark_processed(conn, memo.id, when=now_ts)
             continue
 
-        ok = repo.add_reminder(
-            conn,
-            memo_id=memo.id,
-            text=text,
-            due_at=int(due.timestamp()),
-            created_at=now_ts,
-        )
+        ok = repo.add_reminder(conn, memo_id=memo.id, text=text, due_at=int(due.timestamp()), created_at=now_ts)
         if ok:
             added += 1
             due_local = due.astimezone(LOCAL_TIMEZONE)
-            add_comment(
-                memo.id,
-                f"⏳ [memos-ntfy-reminder] Взято в работу. Отправлю {due_local:%d.%m.%Y %H:%M}",
-            )
+            add_comment(memo.id, f"⏳ [memos-ntfy-reminder] Взято в работу. Отправлю {due_local:%d.%m.%Y %H:%M}")
             log.info("poller: added reminder memo=%s due=%s", memo.id, due.isoformat())
 
         repo.mark_processed(conn, memo.id, when=now_ts)
@@ -83,6 +67,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
 def run_loop(db_path: str, stop_event: threading.Event) -> None:
     conn = db.connect(db_path)
     log.info("Poller started, interval=%ss", config.POLL_INTERVAL)
+
     try:
         while not stop_event.is_set():
             try:
