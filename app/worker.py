@@ -34,9 +34,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
             continue
 
         if status == "ok" and memo is not None and memo.state != "NORMAL":
-            log.info(
-                "worker: memo %s archived, cancel id=%s", row["memo_id"], row["id"]
-            )
+            log.info("worker: memo %s archived, cancel id=%s", row["memo_id"], row["id"])
             repo.mark_cancelled(conn, row["id"], when=now_ts)
             continue
 
@@ -48,27 +46,17 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
             repo.mark_sent(conn, row["id"], when=now_ts)
             if status == "ok":
                 if not archive_memo(row["memo_id"]):
-                    log.warning(
-                        "worker: sent but archive failed memo=%s", row["memo_id"]
-                    )
+                    log.warning("worker: sent but archive failed memo=%s", row["memo_id"])
+
                 now_local = datetime.fromtimestamp(now_ts, tz=LOCAL_TIMEZONE)
-                add_comment(
-                    row["memo_id"],
-                    f"✅ [memos-ntfy-reminder] Отправлено {now_local:%d.%m.%Y %H:%M}",
-                )
+                add_comment(row["memo_id"], f"✅ [memos-ntfy-reminder] Отправлено {now_local:%d.%m.%Y %H:%M}")
             sent += 1
             log.info("worker: sent reminder id=%s", row["id"])
         else:
             repo.mark_error(conn, row["id"], when=now_ts)
-            # attempts после mark_error
             attempts = row["attempts"] + 1
-            add_comment(
-                row["memo_id"],
-                f"⚠️ [memos-ntfy-reminder] Ошибка отправки (попытка {attempts})",
-            )
-            log.warning(
-                "worker: failed reminder id=%s attempts=%s", row["id"], attempts
-            )
+            add_comment(row["memo_id"], f"⚠️ [memos-ntfy-reminder] Ошибка отправки (попытка {attempts})")
+            log.warning("worker: failed reminder id=%s attempts=%s", row["id"], attempts)
 
     return sent
 
