@@ -13,9 +13,7 @@ def normalize_index_safe(text: str) -> str:
     return text.replace("ё", "е").replace("Ё", "Е").lower()
 
 
-def normalized_phrases(
-    phrases: list[str] | tuple[str, ...] | None = None,
-) -> tuple[str, ...]:
+def normalized_phrases(phrases: list[str] | tuple[str, ...] | None = None) -> tuple[str, ...]:
     """Нормализованные непустые триггер-фразы. По умолчанию — из конфига."""
     source = config.TRIGGER_PHRASES if phrases is None else phrases
     return tuple(normalize(p) for p in source if p and p.strip())

@@ -21,11 +21,13 @@ def _find_spans(text: str, phrases: tuple[str, ...]) -> list[tuple[int, int]]:
         p = _normalize_len_preserving(phrase).strip()
         if not p:
             continue
+
         start = 0
         while True:
             idx = norm.find(p, start)
             if idx == -1:
                 break
+
             spans.append((idx, idx + len(p)))
             start = idx + len(p)
 
@@ -62,17 +64,11 @@ def clean_reminder_text(
     if not content or not content.strip():
         return ""
 
-    # 1. Теги — до триггеров, иначе #напомни съестся как фраза и останется висячий #
     text = _TAG_RE.sub(" ", content)
-
-    # 2. Триггер-фразы
-    if phrases is None:
-        phrases = config.TRIGGER_PHRASES
+    phrases = phrases or config.TRIGGER_PHRASES
     spans = _find_spans(text, tuple(phrases))
     if spans:
         text = _cut_spans(text, spans)
 
-    # 3. Переносы строк → пробел, схлопнуть множественные пробелы
     text = _WHITESPACE_RE.sub(" ", text)
-
     return text.strip()
