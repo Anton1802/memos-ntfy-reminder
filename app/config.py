@@ -33,9 +33,7 @@ def load_config_from_dotenv() -> Config:
     load_dotenv()
 
     trigger_phrases = [
-        phrase.strip().lower()
-        for phrase in os.getenv("TRIGGER_PHRASES", "").split(",")
-        if phrase.strip()
+        phrase.strip().lower() for phrase in os.getenv("TRIGGER_PHRASES", "").split(",") if phrase.strip()
     ]
 
     return Config(
