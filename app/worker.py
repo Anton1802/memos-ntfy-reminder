@@ -13,9 +13,7 @@ log = logging.getLogger(__name__)
 
 
 def _format_message(text: str, due_at: int, now_ts: int) -> str:
-    if now_ts - due_at > config.OVERDUE_THRESHOLD_SECONDS:
-        return f"{text} (опоздало)"
-    return text
+    return f"{text} (опоздало)" if now_ts - due_at > config.OVERDUE_THRESHOLD_SECONDS else text
 
 
 def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
@@ -48,6 +46,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
 
                 now_local = datetime.fromtimestamp(now_ts, tz=LOCAL_TIMEZONE)
                 add_comment(row["memo_id"], f"✅ [memos-ntfy-reminder] Отправлено {now_local:%d.%m.%Y %H:%M}")
+
             sent += 1
             log.info("worker: sent reminder id=%s", row["id"])
         else:
