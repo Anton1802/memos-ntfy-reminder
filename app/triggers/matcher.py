@@ -6,7 +6,7 @@ from app.parsing.normalize import normalize, normalized_phrases
 _NORMALIZED_PHRASES = normalized_phrases()
 
 
-def is_reminder(memo: Memo, phrases: list[str] | None = None) -> bool:
+def is_reminder(memo: Memo | None, phrases: list[str] | None = None) -> bool:
     if memo is None:
         return False
 
