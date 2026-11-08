@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -20,7 +21,7 @@ def _is_first_run(conn: sqlite3.Connection) -> bool:
     return row is None
 
 
-def run_once(conn, now_ts: int | None = None) -> int:
+def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
     """Один проход: опросил Memos, положил новые напоминания.
 
     Возвращает число добавленных reminders.
@@ -79,7 +80,7 @@ def run_once(conn, now_ts: int | None = None) -> int:
     return added
 
 
-def run_loop(db_path, stop_event) -> None:
+def run_loop(db_path: str, stop_event: threading.Event) -> None:
     conn = db.connect(db_path)
     log.info("Poller started, interval=%ss", config.POLL_INTERVAL)
     try:
