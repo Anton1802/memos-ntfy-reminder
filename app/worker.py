@@ -7,7 +7,7 @@ from datetime import datetime
 from app.config import LOCAL_TIMEZONE, config
 from app.memos.client import add_comment, archive_memo, get_memo
 from app.notifier.ntfy import send_reminder
-from app.store import database, repo
+from app.store import database, repository
 
 log = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ def _format_message(text: str, due_at: int, now_ts: int) -> str:
 
 def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
     now_ts = int(time.time()) if now_ts is None else now_ts
-    rows = repo.fetch_due(conn, now_ts=now_ts)
+    rows = repository.fetch_due(conn, now_ts=now_ts)
 
     sent = 0
     for row in rows:
@@ -26,12 +26,12 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
 
         if status == "not_found":
             log.info("worker: memo %s deleted, cancel id=%s", row["memo_id"], row["id"])
-            repo.mark_cancelled(conn, row["id"], when=now_ts)
+            repository.mark_cancelled(conn, row["id"], when=now_ts)
             continue
 
         if status == "ok" and memo is not None and memo.state != "NORMAL":
             log.info("worker: memo %s archived, cancel id=%s", row["memo_id"], row["id"])
-            repo.mark_cancelled(conn, row["id"], when=now_ts)
+            repository.mark_cancelled(conn, row["id"], when=now_ts)
             continue
 
         if status == "error":
@@ -39,7 +39,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
 
         msg = _format_message(row["text"], row["due_at"], now_ts)
         if send_reminder(msg):
-            repo.mark_sent(conn, row["id"], when=now_ts)
+            repository.mark_sent(conn, row["id"], when=now_ts)
             if status == "ok":
                 if not archive_memo(row["memo_id"]):
                     log.warning("worker: sent but archive failed memo=%s", row["memo_id"])
@@ -50,7 +50,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
             sent += 1
             log.info("worker: sent reminder id=%s", row["id"])
         else:
-            repo.mark_error(conn, row["id"], when=now_ts)
+            repository.mark_error(conn, row["id"], when=now_ts)
             attempts = row["attempts"] + 1
             add_comment(row["memo_id"], f"⚠️ [memos-ntfy-reminder] Ошибка отправки (попытка {attempts})")
             log.warning("worker: failed reminder id=%s attempts=%s", row["id"], attempts)

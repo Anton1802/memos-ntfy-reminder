@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from app.memos.models import Memo
-from app.store import database, repo
+from app.store import database, repository
 from app.worker import run_once
 
 
@@ -25,7 +25,7 @@ def mock_add_comment():
 
 
 def _add(conn, memo_id="memos/1", text="x", due_at=100):
-    repo.add_reminder(conn, memo_id=memo_id, text=text, due_at=due_at, created_at=0)
+    repository.add_reminder(conn, memo_id=memo_id, text=text, due_at=due_at, created_at=0)
     return conn.execute("SELECT id, memo_id FROM reminders").fetchone()
 
 

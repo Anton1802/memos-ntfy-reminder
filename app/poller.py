@@ -8,7 +8,7 @@ from app.config import LOCAL_TIMEZONE, config
 from app.memos.client import add_comment, list_memos
 from app.parsing.clean import clean_reminder_text
 from app.parsing.time_parser import parse_due
-from app.store import database, repo
+from app.store import database, repository
 from app.triggers.matcher import is_reminder
 
 log = logging.getLogger(__name__)
@@ -28,30 +28,29 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
 
     added = 0
     for memo in list_memos():
-        if memo.state != "NORMAL" or repo.is_processed(conn, memo.id):
+        if memo.state != "NORMAL" or repository.is_processed(conn, memo.id):
             continue
 
         if cutoff is not None and int(memo.create_time.timestamp()) < cutoff or not is_reminder(memo):
-            repo.mark_processed(conn, memo.id, when=now_ts)
+            repository.mark_processed(conn, memo.id, when=now_ts)
             continue
-
         due = parse_due(memo.content, now_dt)
         if due is None:
             due = now_dt + timedelta(minutes=config.TRIGGER_DEFAULT_MINUTES)
 
         text = clean_reminder_text(memo.content)
         if not text:
-            repo.mark_processed(conn, memo.id, when=now_ts)
+            repository.mark_processed(conn, memo.id, when=now_ts)
             continue
 
-        ok = repo.add_reminder(conn, memo_id=memo.id, text=text, due_at=int(due.timestamp()), created_at=now_ts)
+        ok = repository.add_reminder(conn, memo_id=memo.id, text=text, due_at=int(due.timestamp()), created_at=now_ts)
         if ok:
             added += 1
             due_local = due.astimezone(LOCAL_TIMEZONE)
             add_comment(memo.id, f"⏳ [memos-ntfy-reminder] Взято в работу. Отправлю {due_local:%d.%m.%Y %H:%M}")
             log.info("poller: added reminder memo=%s due=%s", memo.id, due.isoformat())
 
-        repo.mark_processed(conn, memo.id, when=now_ts)
+        repository.mark_processed(conn, memo.id, when=now_ts)
 
     return added
 
