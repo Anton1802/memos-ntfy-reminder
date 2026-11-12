@@ -9,7 +9,7 @@ from app.store import database
 from app.worker import run_loop as worker_loop
 
 
-def _init_database_schema() -> None:
+def _init_database() -> None:
     connection = database.connect(config.DATABASE_PATH)
     database.init_schema(connection)
     connection.close()
@@ -19,8 +19,8 @@ def main() -> None:
     setup_logging(config.LOGGING_LEVEL)
     log = logging.getLogger(__name__)
 
-    _init_database_schema()
-    log.info("Database schema created")
+    _init_database()
+    log.info("Database initialized")
 
     stop_event = threading.Event()
 
