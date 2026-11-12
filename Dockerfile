@@ -16,4 +16,4 @@ COPY run.py .
 RUN useradd -r -u 1000 app && mkdir -p /data && chown -R app:app /data
 USER app
 
-CMD ["python", "run.py"]
+CMD ["python", "main.py"]
