@@ -67,8 +67,7 @@ def run_loop(db_path: str, stop_event: threading.Event) -> None:
         while not stop_event.is_set():
             try:
                 sent = run_once(conn)
-                if sent:
-                    log.info("worker: sent %d", sent)
+                log.info("worker: sent %d", sent)
             except Exception:
                 log.exception("worker: run_once failed")
             stop_event.wait(config.WORKER_INTERVAL)

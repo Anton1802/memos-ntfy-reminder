@@ -60,8 +60,7 @@ def run_loop(db_path: str, stop_event: threading.Event) -> None:
         while not stop_event.is_set():
             try:
                 added = run_once(conn)
-                if added:
-                    log.info("poller: added %d reminder(s)", added)
+                log.info("poller: added %d reminder(s)", added)
             except Exception:
                 log.exception("poller: run_once failed")
             stop_event.wait(config.POLL_INTERVAL)
