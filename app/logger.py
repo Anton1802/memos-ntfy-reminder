@@ -47,15 +47,4 @@ def get_logger(name: str) -> logging.Logger:
     handler.setFormatter(formatter)
 
     logger.addHandler(handler)
-
     return logger
-
-
-setup_logging("DEBUG")
-
-logger = get_logger(__name__)
-logger.info("Hello!")
-logger.debug("Hello!")
-logger.warning("Hello!")
-logger.error("Hello!")
-logger.critical("Hello!")
