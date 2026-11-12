@@ -2,7 +2,7 @@ import signal
 import threading
 
 from app.config import config
-from app.logger import get_logger, setup_logging
+from app.logger import get_logger
 from app.poller import run_loop as poller_loop
 from app.store import database
 from app.worker import run_loop as worker_loop
@@ -15,7 +15,6 @@ def _init_database() -> None:
 
 
 def main() -> None:
-    setup_logging(config.LOGGING_LEVEL)
     log = get_logger(__name__)
 
     _init_database()

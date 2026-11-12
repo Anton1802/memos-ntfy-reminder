@@ -31,20 +31,20 @@ class ColoredFormatter(logging.Formatter):
         return super().format(record)
 
 
-def setup_logging(level: str | None = "INFO") -> None:
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s %(levelname)s | %(name)s.%(funcName)s | %(message)s",
-        datefmt="%y-%m-%d %H:%M:%S",
-    )
-
-
-def get_logger(name: str) -> logging.Logger:
+def get_logger(name: str, level: str = "DEBUG") -> logging.Logger:
     logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    format = "%(asctime)s %(levelname)s | %(name)s.%(funcName)s | %(message)s"
+    date_format = "%y-%m-%d %H:%M:%S"
+    formatter = ColoredFormatter(fmt=format, datefmt=date_format)
+
     handler = logging.StreamHandler()
-
-    formatter = ColoredFormatter()
     handler.setFormatter(formatter)
-
     logger.addHandler(handler)
+
     return logger
+
+
+logger = get_logger("test")
+logger.debug("meow")
