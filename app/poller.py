@@ -15,16 +15,11 @@ from app.triggers.matcher import is_reminder
 log = logging.getLogger(__name__)
 
 
-def _is_first_run(conn: sqlite3.Connection) -> bool:
-    row = conn.execute("SELECT 1 FROM processed LIMIT 1").fetchone()
-    return row is None
-
-
 def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
     now_ts = int(time.time()) if now_ts is None else now_ts
     now_dt = datetime.fromtimestamp(now_ts, tz=timezone.utc)
 
-    first_run = _is_first_run(conn)
+    first_run = repository.is_first_run(conn)
     cutoff = now_ts - config.FIRST_RUN_LOOKBACK if first_run else None
 
     added = 0

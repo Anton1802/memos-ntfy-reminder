@@ -9,6 +9,12 @@ def add_reminder(conn: sqlite3.Connection, memo_id: str, text: str, due_at: int,
     return cur.rowcount > 0
 
 
+def is_first_run(conn: sqlite3.Connection) -> bool:
+    query = "SELECT 1 FROM processed LIMIT 1"
+    row = conn.execute(query).fetchone()
+    return row is None
+
+
 def is_processed(conn: sqlite3.Connection, memo_id: str) -> bool:
     query = "SELECT 1 FROM processed WHERE memo_id = ?"
     row = conn.execute(query, (memo_id,)).fetchone()
