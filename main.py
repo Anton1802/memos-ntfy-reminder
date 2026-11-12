@@ -25,7 +25,7 @@ def main() -> None:
     stop = threading.Event()
 
     def _on_signal(signum, _):
-        log.info("received signal %s, shutting down", signum)
+        log.info("Received signal %s, shutting down", signum)
         stop.set()
 
     signal.signal(signal.SIGTERM, _on_signal)
@@ -37,7 +37,7 @@ def main() -> None:
     poller.start()
     worker.start()
 
-    log.info("started (poller + worker)")
+    log.info("Ntfy reminder started")
     stop.wait()
 
     poller.join(timeout=5)
