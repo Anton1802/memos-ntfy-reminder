@@ -16,4 +16,4 @@ dev = [
 
 [tool.ruff]
 line-length=120
-exclude = [".venv", "venv", ".pytest_cache"]
+exclude = [".venv", "venv", "env", ".pytest_cache"]
