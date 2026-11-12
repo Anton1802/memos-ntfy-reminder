@@ -12,11 +12,7 @@ NTFY_TAGS = ["bell"]
 
 def send_reminder(text: str, title: str = "Напоминание") -> bool:
     if not text or not text.strip():
-        log.warning("send_reminder: пустой текст, пропускаем")
-        return False
-
-    if not config.NTFY_TOPIC:
-        log.error("send_reminder: NTFY_TOPIC не задан")
+        log.warning("Skip empty text")
         return False
 
     payload = {
@@ -34,11 +30,11 @@ def send_reminder(text: str, title: str = "Напоминание") -> bool:
     try:
         response = requests.post(config.NTFY_URL, json=payload, headers=headers, timeout=config.NTFY_TIMEOUT)
     except requests.RequestException as e:
-        log.error("ntfy request failed: %s", e)
+        log.error("Request failed: %s", e)
         return False
 
     if not response.ok:
-        log.error("ntfy returned %s: %s", response.status_code, response.text[:200])
+        log.error("Returned %s: %s", response.status_code, response.text[:200])
         return False
 
     return True
