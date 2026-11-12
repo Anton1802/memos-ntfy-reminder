@@ -44,7 +44,3 @@ def get_logger(name: str, level: str = "DEBUG") -> logging.Logger:
     logger.addHandler(handler)
 
     return logger
-
-
-logger = get_logger("test")
-logger.debug("meow")
