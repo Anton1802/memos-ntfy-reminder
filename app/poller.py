@@ -1,4 +1,3 @@
-import logging
 import sqlite3
 import threading
 import time
@@ -6,13 +5,14 @@ from datetime import datetime, timedelta, timezone
 
 from app.config import LOCAL_TIMEZONE, config
 from app.enums import Emoji
+from app.logger import get_logger
 from app.memos.client import add_comment, list_memos
 from app.parsing.clean import clean_reminder_text
 from app.parsing.time_parser import parse_due
 from app.store import database, repository
 from app.triggers.matcher import is_reminder
 
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:

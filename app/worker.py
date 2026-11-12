@@ -1,4 +1,3 @@
-import logging
 import sqlite3
 import threading
 import time
@@ -6,11 +5,12 @@ from datetime import datetime
 
 from app.config import LOCAL_TIMEZONE, config
 from app.enums import Emoji
+from app.logger import get_logger
 from app.memos.client import add_comment, archive_memo, get_memo
 from app.notifier.ntfy import send_reminder
 from app.store import database, repository
 
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 def _format_message(text: str, due_at: int, now_ts: int) -> str:

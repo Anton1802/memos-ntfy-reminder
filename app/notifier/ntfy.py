@@ -1,10 +1,9 @@
-import logging
-
 import requests
 
 from app.config import config
+from app.logger import get_logger
 
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 def send_reminder(text: str, title: str = "Напоминание") -> bool:

@@ -1,11 +1,10 @@
-import logging
-
 import requests
 
 from app.config import config
+from app.logger import get_logger
 from app.memos.models import Memo
 
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 HEADERS = {"Authorization": f"Bearer {config.MEMOS_TOKEN}"}
 
