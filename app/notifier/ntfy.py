@@ -6,9 +6,6 @@ from app.config import config
 
 log = logging.getLogger(__name__)
 
-NTFY_PRIORITY = 4
-NTFY_TAGS = ["bell"]
-
 
 def send_reminder(text: str, title: str = "Напоминание") -> bool:
     if not text or not text.strip():
@@ -16,11 +13,11 @@ def send_reminder(text: str, title: str = "Напоминание") -> bool:
         return False
 
     payload = {
-        "topic": config.NTFY_TOPIC,
         "title": title,
         "message": text,
-        "priority": NTFY_PRIORITY,
-        "tags": NTFY_TAGS,
+        "topic": config.NTFY_TOPIC,
+        "priority": config.NTFY_PRIORITY,
+        "tags": config.NTFY_TAGS,
     }
 
     headers = {}

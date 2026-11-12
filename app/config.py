@@ -15,6 +15,8 @@ class Config:
     NTFY_TOKEN: str | None
     NTFY_TOPIC: str
     NTFY_TIMEOUT: int
+    NTFY_PRIORITY: int | None
+    NTFY_TAGS: list[str]
 
     TRIGGER_PHRASES: list[str]
     TRIGGER_DEFAULT_MINUTES: int
@@ -32,9 +34,8 @@ class Config:
 def load_config_from_dotenv() -> Config:
     load_dotenv()
 
-    trigger_phrases = [
-        phrase.strip().lower() for phrase in os.getenv("TRIGGER_PHRASES", "").split(",") if phrase.strip()
-    ]
+    ntfy_tags = [tag.strip().lower() for tag in os.getenv("NTFY_TAGS", "").split(",") if tag.strip()]
+    trigger_phrases = [phr.strip().lower() for phr in os.getenv("TRIGGER_PHRASES", "").split(",") if phr.strip()]
 
     return Config(
         MEMOS_URL=os.environ["MEMOS_URL"],
@@ -44,6 +45,8 @@ def load_config_from_dotenv() -> Config:
         NTFY_TOKEN=os.getenv("NTFY_TOKEN"),
         NTFY_TOPIC=os.environ["NTFY_TOPIC"],
         NTFY_TIMEOUT=int(os.getenv("NTFY_TIMEOUT", 10)),
+        NTFY_PRIORITY=int(os.getenv("NTFY_PRIORITY", 4)),
+        NTFY_TAGS=ntfy_tags,
         TRIGGER_PHRASES=trigger_phrases,
         TRIGGER_DEFAULT_MINUTES=int(os.getenv("TRIGGER_DEFAULT_MINUTES", 60)),
         POLL_INTERVAL=int(os.getenv("POLL_INTERVAL", 30)),
