@@ -16,11 +16,11 @@ def list_memos(limit: int = 200) -> list[Memo]:
         params = {"pageSize": limit}
         response = requests.get(url, headers=HEADERS, params=params, timeout=config.MEMOS_TIMEOUT)
     except requests.RequestException as e:
-        log.error("memos list failed: %s", e)
+        log.error("List failed: %s", e)
         return []
 
     if not response.ok:
-        log.error("memos list returned %s: %s", response.status_code, response.text[:200])
+        log.error("List returned %s: %s", response.status_code, response.text[:200])
         return []
 
     out: list[Memo] = []
@@ -28,7 +28,7 @@ def list_memos(limit: int = 200) -> list[Memo]:
         try:
             out.append(Memo.from_payload(item))
         except (KeyError, ValueError, TypeError) as e:
-            log.warning("skip malformed memo: %s", e)
+            log.warning("Skip malformed memo: %s", e)
 
     return out
 
@@ -40,11 +40,11 @@ def archive_memo(memo_id: str) -> bool:
         json = {"state": "ARCHIVED"}
         response = requests.patch(url, params=params, json=json, headers=HEADERS, timeout=config.MEMOS_TIMEOUT)
     except requests.RequestException as e:
-        log.error("memos archive failed: %s", e)
+        log.error("Archive failed: %s", e)
         return False
 
     if not response.ok:
-        log.error("memos archive returned %s: %s", response.status_code, response.text[:200])
+        log.error("Archive returned %s: %s", response.status_code, response.text[:200])
         return False
 
     return True
@@ -55,20 +55,20 @@ def get_memo(memo_id: str) -> tuple[str, Memo | None]:
         url = f"{config.MEMOS_URL}/api/v1/{memo_id}"
         response = requests.get(url, headers=HEADERS, timeout=config.MEMOS_TIMEOUT)
     except requests.RequestException as e:
-        log.error("memos get failed: %s", e)
+        log.error("Get failed: %s", e)
         return ("error", None)
 
     if response.status_code == requests.codes.not_found:
         return ("not_found", None)
 
     if not response.ok:
-        log.error("memos get returned %s: %s", response.status_code, response.text[:200])
+        log.error("Get returned %s: %s", response.status_code, response.text[:200])
         return ("error", None)
 
     try:
         return ("ok", Memo.from_payload(response.json()))
     except (KeyError, ValueError, TypeError) as e:
-        log.warning("malformed memo %s: %s", memo_id, e)
+        log.warning("Malformed memo %s: %s", memo_id, e)
         return ("error", None)
 
 
@@ -81,11 +81,11 @@ def add_comment(memo_id: str, text: str) -> bool:
         json = {"content": text}
         response = requests.post(url, json=json, headers=HEADERS, timeout=config.MEMOS_TIMEOUT)
     except requests.RequestException as e:
-        log.error("memos comment failed: %s", e)
+        log.error("Comment failed: %s", e)
         return False
 
     if not response.ok:
-        log.error("memos comment returned %s: %s", response.status_code, response.text[:200])
+        log.error("Comment returned %s: %s", response.status_code, response.text[:200])
         return False
 
     return True
