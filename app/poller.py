@@ -45,7 +45,7 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
             added += 1
             due_local = due.astimezone(LOCAL_TIMEZONE)
             add_comment(memo.id, f"{Emoji.PROCESSED} Взято в работу. Отправлю {due_local:%d.%m.%Y %H:%M}")
-            log.info("poller: added reminder memo=%s due=%s", memo.id, due.isoformat())
+            log.info("Added reminder memo=%s due=%s", memo.id, due.isoformat())
 
         repository.mark_processed(conn, memo.id, when=now_ts)
 
@@ -54,16 +54,16 @@ def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
 
 def run_loop(db_path: str, stop_event: threading.Event) -> None:
     conn = database.connect(db_path)
-    log.info("Poller started, interval=%ss", config.POLL_INTERVAL)
+    log.info("Started, interval=%ss.", config.POLL_INTERVAL)
 
     try:
         while not stop_event.is_set():
             try:
                 added = run_once(conn)
-                log.info("poller: added %d reminder(s)", added)
-            except Exception:
-                log.exception("poller: run_once failed")
+                log.info("Added %d reminder(s)", added)
+            except Exception as exception:
+                log.exception("Failed %s", exception)
             stop_event.wait(config.POLL_INTERVAL)
     finally:
         conn.close()
-        log.info("poller stopped")
+        log.info("Stopped")
