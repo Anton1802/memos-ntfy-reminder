@@ -11,9 +11,9 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY app/ ./app/
-COPY run.py .
+COPY main.py .
 
 RUN useradd -r -u 1000 app && mkdir -p /data && chown -R app:app /data
 USER app
 
-CMD ["python", "run.py"]
+CMD ["python", "main.py"]

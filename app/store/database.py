@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import sqlite3
 from pathlib import Path
 
@@ -26,7 +24,6 @@ CREATE INDEX IF NOT EXISTS idx_reminders_due
 
 
 def connect(db_path: str | Path) -> sqlite3.Connection:
-    """Открывает соединение. Каждый поток должен звать это сам — sqlite не шарится."""
     path = Path(db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
 

@@ -1,38 +1,11 @@
-from __future__ import annotations
-
 import re
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
+
 from dateutil.relativedelta import relativedelta
 
-from app.config import TZ
+from app.config import LOCAL_TIMEZONE
 
-_LOCAL_TZ = ZoneInfo(TZ)
 _FALLBACK = object()  # сигнал: парсер матчит, но нужен fallback (stop, return None)
-
-# --- для календарных дней, лет, месяцев --------------------------------------------------
-
-
-def _make_delta(n: float, unit: str):
-    if unit in {"месяц", "месяца", "месяцев", "мес"}:
-        if not n.is_integer():
-            return None
-        return relativedelta(months=int(n))
-
-    if unit in {"год", "года", "годов", "годы", "лет", "г"}:
-        if not n.is_integer():
-            return None
-        return relativedelta(years=int(n))
-
-    secs = _UNIT_SECONDS.get(unit)
-
-    if secs is None:
-        return None
-
-    return timedelta(seconds=round(n * secs))
-
-
-# --- относительное с цифрой -------------------------------------------------
 
 _RE_REL = re.compile(
     r"через\s+(\d+(?:[.,]\d+)?)\s+"
@@ -65,29 +38,8 @@ _UNIT_SECONDS = {
     "недель": 604800,
 }
 
-
-def _match_rel_number(text: str) -> timedelta | relativedelta | None:
-    m = _RE_REL.search(text)
-    if not m:
-        return None
-
-    try:
-        n = float(m.group(1).replace(",", "."))
-    except ValueError:
-        return None
-
-    if n <= 0:
-        return None
-
-    return _make_delta(n, m.group(2))
-
-
-# --- относительное словом ---------------------------------------------------
-
 _WORD_SECONDS: dict[str, int] = {
     "полчаса": 1800,
-    "пару часов": 7200,
-    "пару минут": 120,
     "минуту": 60,
     "час": 3600,
     "день": 86400,
@@ -97,10 +49,7 @@ _WORD_SECONDS: dict[str, int] = {
     "год": 31536000,
 }
 _WORD_KEYS_SORTED = tuple(sorted(_WORD_SECONDS.keys(), key=len, reverse=True))
-
-_RE_REL_WORD = re.compile(
-    r"через\s+(" + "|".join(re.escape(k) for k in _WORD_KEYS_SORTED) + r")\b"
-)
+_RE_REL_WORD = re.compile(r"через\s+(" + "|".join(re.escape(k) for k in _WORD_KEYS_SORTED) + r")\b")
 
 _NUM_WORDS: dict[str, float] = {
     "одну": 1,
@@ -120,46 +69,11 @@ _NUM_WORDS: dict[str, float] = {
     "полторы": 1.5,
 }
 
-# Единицы — те же, что в _RE_REL, чтобы не дублировать смысл
 _RE_REL_NUM_WORD = re.compile(
     r"через\s+(" + "|".join(_NUM_WORDS.keys()) + r")\s+"
     r"(минут\w*|мин|м|час\w*|ч|день|дня|дней|дн|д|суток|сутки|"
     r"недел\w*|нед|месяц(?:а|ев)?|мес|год(?:а|ов|ы)?|лет|г)\b"
 )
-
-
-def _match_rel_num_word(text: str) -> timedelta | None:
-    m = _RE_REL_NUM_WORD.search(text)
-    if not m:
-        return None
-
-    n = _NUM_WORDS.get(m.group(1))
-    if not n or n <= 0:
-        return None
-
-    return _make_delta(float(n), m.group(2))
-
-
-def _match_rel_word(text: str):
-    m = _RE_REL_WORD.search(text)
-
-    if not m:
-        return None
-
-    word = m.group(1)
-
-    if word == "месяц":
-        return relativedelta(months=1)
-
-    if word == "год":
-        return relativedelta(years=1)
-
-    secs = _WORD_SECONDS.get(word)
-
-    return timedelta(seconds=secs) if secs is not None else None
-
-
-# --- части дня --------------------------------------------------------------
 
 _DAY_PART_HOUR = {
     "утром": 9,
@@ -177,26 +91,16 @@ _DAY_PART_HOUR = {
     "в обед": 13,
     "обед": 13,
 }
+
 _DAY_PART_KEYS_SORTED = tuple(sorted(_DAY_PART_HOUR.keys(), key=len, reverse=True))
 _RE_DAY_PART = re.compile(
     r"\b(?:(завтра|послезавтра|сегодня)\s+)?"
     r"(" + "|".join(re.escape(k) for k in _DAY_PART_KEYS_SORTED) + r")\b"
 )
 
-
-# --- завтра/послезавтра/сегодня --------------------------------------------
-
-_RE_TOMORROW = re.compile(
-    r"\b(завтра|послезавтра|сегодня)\b" r"(?:\s+в\s+(\d{1,2})(?::(\d{2}))?)?"
-)
-
-# --- абсолютное время -------------------------------------------------------
-
+_RE_TOMORROW = re.compile(r"\b(завтра|послезавтра|сегодня)\b" r"(?:\s+в\s+(\d{1,2})(?::(\d{2}))?)?")
 _RE_CLOCK = re.compile(r"\b(?:в|к)\s+(\d{1,2})(?:[:.](\d{2}))?\b")
 _RE_CLOCK_NOPREP = re.compile(r"\b(\d{1,2}):(\d{2})\b")
-
-
-# --- абсолютные даты --------------------------------------------------------
 
 _MONTHS = {
     "январ": 1,
@@ -212,11 +116,13 @@ _MONTHS = {
     "ноябр": 11,
     "декабр": 12,
 }
+
 _RE_DATE_WORD = re.compile(
     r"\b(\d{1,2})\s+(" + "|".join(_MONTHS.keys()) + r")[а-я]*"
     r"(?:\s+(\d{4}))?"
     r"(?:\s+в\s+(\d{1,2})(?::(\d{2}))?)?"
 )
+
 _RE_DATE_NUM = re.compile(
     r"(?<!через )"
     r"\b(\d{1,2})\.(\d{1,2})(?:\.(\d{4}))?"
@@ -241,13 +147,71 @@ _WEEKDAYS = {
     "сб": 5,
     "вс": 6,
 }
+
 _RE_WEEKDAY = re.compile(
     r"\bв\s+(?:следующ(?:ий|ую|ее)\s+)?(" + "|".join(_WEEKDAYS.keys()) + r")[а-я]*\b"
     r"(?:\s+в\s+(\d{1,2})(?::(\d{2}))?)?"
 )
 
 
-# --- helpers ----------------------------------------------------------------
+def _make_delta(n: float, unit: str) -> relativedelta | timedelta | None:
+    if not n.is_integer():
+        return None
+
+    if unit in {"месяц", "месяца", "месяцев", "мес"}:
+        return relativedelta(months=int(n))
+
+    if unit in {"год", "года", "годов", "годы", "лет", "г"}:
+        return relativedelta(years=int(n))
+
+    secs = _UNIT_SECONDS.get(unit)
+    if not secs:
+        return None
+
+    return timedelta(seconds=round(n * secs))
+
+
+def _match_rel_number(text: str) -> relativedelta | timedelta | None:
+    match = _RE_REL.search(text)
+    if not match:
+        return None
+
+    try:
+        n = float(match.group(1).replace(",", "."))
+    except ValueError:
+        return None
+
+    if n <= 0:
+        return None
+
+    return _make_delta(n, match.group(2))
+
+
+def _match_rel_num_word(text: str) -> relativedelta | timedelta | None:
+    match = _RE_REL_NUM_WORD.search(text)
+    if not match:
+        return None
+
+    n = _NUM_WORDS.get(match.group(1))
+    if not n or n <= 0:
+        return None
+
+    return _make_delta(float(n), match.group(2))
+
+
+def _match_rel_word(text: str):
+    m = _RE_REL_WORD.search(text)
+    if not m:
+        return None
+
+    word = m.group(1)
+    if word == "месяц":
+        return relativedelta(months=1)
+    if word == "год":
+        return relativedelta(years=1)
+
+    secs = _WORD_SECONDS.get(word)
+    return timedelta(seconds=secs) if secs is not None else None
 
 
 def _at_time(local: datetime, hh: int, mm: int) -> datetime:
@@ -262,10 +226,26 @@ def _local_9(local: datetime) -> datetime:
     return local.replace(hour=9, minute=0, second=0, microsecond=0)
 
 
-# --- парсеры -----------------------------------------------------------------
+def _build_date(local_now: datetime, day: int, month: int, year: int, hh: int, mm: int) -> datetime | None:
+    try:
+        candidate = local_now.replace(year=year, month=month, day=day, hour=hh, minute=mm, second=0, microsecond=0)
+    except ValueError:
+        return None
+
+    if candidate <= local_now:
+        if year:
+            return None
+
+        try:
+            candidate = candidate.replace(year=year + 1)
+        except ValueError:
+            return None
+
+    return candidate
 
 
-def _parse_absolute_date(text: str, local_now: datetime):
+def _parse_absolute_date(text: str, local_now: datetime) -> datetime | None:
+    # Пиздец, я не знаю что это такое
     m = _RE_DATE_WORD.search(text)
     if m:
         day = int(m.group(1))
@@ -286,75 +266,36 @@ def _parse_absolute_date(text: str, local_now: datetime):
         if 1 <= day <= 31 and 1 <= month <= 12 and _valid_time(hh, mm):
             return _build_date(local_now, day, month, year, hh, mm)
 
-    return None
 
-
-def _build_date(local_now, day, month, year, hh, mm):
-    year_was_specified = year is not None
-
-    if year is None:
-        year = local_now.year
-
-    try:
-        candidate = local_now.replace(
-            year=year,
-            month=month,
-            day=day,
-            hour=hh,
-            minute=mm,
-            second=0,
-            microsecond=0,
-        )
-    except ValueError:
+def _parse_weekday(text: str, local_now: datetime) -> datetime | None:
+    match = _RE_WEEKDAY.search(text)
+    if not match:
         return None
 
-    if candidate <= local_now:
-        if year_was_specified:
-            return None
-
-        try:
-            candidate = candidate.replace(year=year + 1)
-        except ValueError:
-            return None
-
-    return candidate
-
-
-def _parse_weekday(text: str, local_now: datetime):
-    m = _RE_WEEKDAY.search(text)
-    if not m:
-        return None
-
-    target_wd = _WEEKDAYS.get(m.group(1))
+    target_wd = _WEEKDAYS.get(match.group(1))
     if target_wd is None:
         return None
 
-    hh = int(m.group(2)) if m.group(2) else 9
-    mm = int(m.group(3)) if m.group(3) else 0
-
+    hh = int(match.group(2)) if match.group(2) else 9
+    mm = int(match.group(3)) if match.group(3) else 0
     if not _valid_time(hh, mm):
         return None
 
     days_ahead = (target_wd - local_now.weekday()) % 7
-
-    candidate = _at_time(
-        local_now + timedelta(days=days_ahead),
-        hh,
-        mm,
-    )
-
+    candidate = _at_time(local_now + timedelta(days=days_ahead), hh, mm)
     if candidate <= local_now:
         candidate += timedelta(days=7)
 
     return candidate
 
 
-def _parse_day_part(text: str, local_now: datetime):
-    m = _RE_DAY_PART.search(text)
-    if not m:
+def _parse_day_part(text: str, local_now: datetime) -> object | datetime | None:
+    match = _RE_DAY_PART.search(text)
+    if not match:
         return None
-    day_word = m.group(1)
-    hour = _DAY_PART_HOUR.get(m.group(2))
+
+    day_word = match.group(1)
+    hour = _DAY_PART_HOUR.get(match.group(2))
     if hour is None:
         return None
 
@@ -373,21 +314,24 @@ def _parse_day_part(text: str, local_now: datetime):
     return _at_time(base, hour, 0)
 
 
-def _parse_tomorrow(text: str, local_now: datetime):
-    m = _RE_TOMORROW.search(text)
-    if not m:
+def _parse_tomorrow(text: str, local_now: datetime) -> object | datetime | None:
+    match = _RE_TOMORROW.search(text)
+    if not match:
         return None
-    word = m.group(1)
-    hh_raw = m.group(2)
-    mm_raw = m.group(3)
+
+    word = match.group(1)
+    hh_raw = match.group(2)
+    mm_raw = match.group(3)
 
     if word == "сегодня":
         if hh_raw is None:
             return _FALLBACK
+
         hh = int(hh_raw)
         mm = int(mm_raw) if mm_raw else 0
         if not _valid_time(hh, mm):
             return None
+
         candidate = _at_time(local_now, hh, mm)
         if candidate <= local_now:
             return _FALLBACK
@@ -397,99 +341,89 @@ def _parse_tomorrow(text: str, local_now: datetime):
     base = local_now + timedelta(days=days)
     if hh_raw is None:
         return _local_9(base)
+
     hh = int(hh_raw)
     mm = int(mm_raw) if mm_raw else 0
     if not _valid_time(hh, mm):
         return None
+
     return _at_time(base, hh, mm)
 
 
-def _parse_clock(text: str, local_now: datetime):
-    m = _RE_CLOCK.search(text)
-    if m:
-        hh = int(m.group(1))
-        mm = int(m.group(2)) if m.group(2) else 0
+def _parse_clock(text: str, local_now: datetime) -> datetime | None:
+    match = _RE_CLOCK.search(text)
+    if match:
+        hh = int(match.group(1))
+        mm = int(match.group(2)) if match.group(2) else 0
         if not _valid_time(hh, mm):
             return None
+
         candidate = _at_time(local_now, hh, mm)
         if candidate <= local_now:
             candidate += timedelta(days=1)
         return candidate
 
-    m = _RE_CLOCK_NOPREP.search(text)
-    if m:
-        hh = int(m.group(1))
-        mm = int(m.group(2))
+    match = _RE_CLOCK_NOPREP.search(text)
+    if match:
+        hh = int(match.group(1))
+        mm = int(match.group(2))
         if not _valid_time(hh, mm):
             return None
+
         candidate = _at_time(local_now, hh, mm)
         if candidate <= local_now:
             candidate += timedelta(days=1)
         return candidate
-
-    return None
-
-
-# --- основной парсер --------------------------------------------------------
 
 
 def parse_due(text: str, now: datetime) -> datetime | None:
+    # Пиздец, я не знаю что это такое x2
     if now.tzinfo is None:
         raise ValueError("now must be timezone-aware")
     if not text or not text.strip():
         return None
 
     normalized = re.sub(r"\s+", " ", text.casefold().replace("ё", "е")).strip()
-    local_now = now.astimezone(_LOCAL_TZ)
+    local_now = now.astimezone(LOCAL_TIMEZONE)
 
-    # 1. "через N единиц" — самое специфичное
     delta = _match_rel_number(normalized)
     if delta is not None:
         return (local_now + delta).astimezone(timezone.utc)
 
-        # 2. "через одну/две/... единиц" (числительное прописью)
     delta = _match_rel_num_word(normalized)
     if delta is not None:
         return (local_now + delta).astimezone(timezone.utc)
 
-    # 2. "через <слово>"
     delta = _match_rel_word(normalized)
     if delta is not None:
         return (local_now + delta).astimezone(timezone.utc)
 
-    # 3. Абсолютная дата (20 сентября, 20.09, 20.09.2026 [в HH:MM])
-    r = _parse_absolute_date(normalized, local_now)
-    if r is _FALLBACK:
+    result = _parse_absolute_date(normalized, local_now)
+    if result is _FALLBACK:
         return None
-    if r is not None:
-        return r.astimezone(timezone.utc)
+    if result is not None:
+        return result.astimezone(timezone.utc)
 
-    # 4. День недели (в пятницу, в следующий вторник [в HH:MM])
-    r = _parse_weekday(normalized, local_now)
-    if r is _FALLBACK:
+    result = _parse_weekday(normalized, local_now)
+    if result is _FALLBACK:
         return None
-    if r is not None:
-        return r.astimezone(timezone.utc)
+    if result is not None:
+        return result.astimezone(timezone.utc)
 
-    # 5. Часть дня (утром, завтра вечером, сегодня днём)
-    r = _parse_day_part(normalized, local_now)
-    if r is _FALLBACK:
+    result = _parse_day_part(normalized, local_now)
+    if result is _FALLBACK:
         return None
-    if r is not None:
-        return r.astimezone(timezone.utc)
+    if result is not None:
+        return result.astimezone(timezone.utc)
 
-    # 6. завтра/послезавтра/сегодня [в HH[:MM]]
-    r = _parse_tomorrow(normalized, local_now)
-    if r is _FALLBACK:
+    result = _parse_tomorrow(normalized, local_now)
+    if result is _FALLBACK:
         return None
-    if r is not None:
-        return r.astimezone(timezone.utc)
+    if result is not None:
+        return result.astimezone(timezone.utc)
 
-    # 7. Голое время (в 18:00, к 18:00, 18.00, 18:00 без предлога)
-    r = _parse_clock(normalized, local_now)
-    if r is _FALLBACK:
+    result = _parse_clock(normalized, local_now)
+    if result is _FALLBACK:
         return None
-    if r is not None:
-        return r.astimezone(timezone.utc)
-
-    return None
+    if result is not None:
+        return result.astimezone(timezone.utc)

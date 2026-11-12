@@ -1,104 +1,69 @@
-from __future__ import annotations
-
-import logging
+import sqlite3
+import threading
 import time
 from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
-from app.config import TZ
-from app.memos.client import add_comment
 
-_LOCAL_TZ = ZoneInfo(TZ)
-
-from app.config import (
-    FIRST_RUN_LOOKBACK,
-    POLL_INTERVAL,
-    TRIGGER_DEFAULT_MINUTES,
-)
-from app.memos.client import list_memos
+from app.config import LOCAL_TIMEZONE, config
+from app.enums import Emoji
+from app.logger import get_logger
+from app.memos.client import add_comment, list_memos
 from app.parsing.clean import clean_reminder_text
 from app.parsing.time_parser import parse_due
-from app.store import repo, db
+from app.store import database, repository
 from app.triggers.matcher import is_reminder
 
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
-def _is_first_run(conn) -> bool:
-    row = conn.execute("SELECT 1 FROM processed LIMIT 1").fetchone()
-    return row is None
-
-
-def run_once(conn, now_ts: int | None = None) -> int:
-    """Один проход: опросил Memos, положил новые напоминания.
-
-    Возвращает число добавленных reminders.
-    """
+def run_once(conn: sqlite3.Connection, now_ts: int | None = None) -> int:
     now_ts = int(time.time()) if now_ts is None else now_ts
     now_dt = datetime.fromtimestamp(now_ts, tz=timezone.utc)
 
-    first_run = _is_first_run(conn)
-    cutoff = now_ts - FIRST_RUN_LOOKBACK if first_run else None
+    first_run = repository.is_first_run(conn)
+    cutoff = now_ts - config.FIRST_RUN_LOOKBACK if first_run else None
 
     added = 0
     for memo in list_memos():
-        if memo.state != "NORMAL":
+        if memo.state != "NORMAL" or repository.is_processed(conn, memo.id):
             continue
 
-        if repo.is_processed(conn, memo.id):
-            continue
-
-        # Первый запуск: старые заметки помечаем processed, но не обрабатываем
-        if cutoff is not None and int(memo.create_time.timestamp()) < cutoff:
-            repo.mark_processed(conn, memo.id, when=now_ts)
-            continue
-
-        if not is_reminder(memo):
-            repo.mark_processed(conn, memo.id, when=now_ts)
+        if cutoff is not None and int(memo.create_time.timestamp()) < cutoff or not is_reminder(memo):
+            repository.mark_processed(conn, memo.id, when=now_ts)
             continue
 
         due = parse_due(memo.content, now_dt)
         if due is None:
-            due = now_dt + timedelta(minutes=TRIGGER_DEFAULT_MINUTES)
+            due = now_dt + timedelta(minutes=config.TRIGGER_DEFAULT_MINUTES)
 
         text = clean_reminder_text(memo.content)
         if not text:
-            # после чистки пусто — нечего слать
-            repo.mark_processed(conn, memo.id, when=now_ts)
+            repository.mark_processed(conn, memo.id, when=now_ts)
             continue
 
-        ok = repo.add_reminder(
-            conn,
-            memo_id=memo.id,
-            text=text,
-            due_at=int(due.timestamp()),
-            created_at=now_ts,
-        )
+        ok = repository.add_reminder(conn, memo_id=memo.id, text=text, due_at=int(due.timestamp()), created_at=now_ts)
         if ok:
             added += 1
-            due_local = due.astimezone(_LOCAL_TZ)
-            add_comment(
-                memo.id,
-                f"⏳ [memos-ntfy-reminder] Взято в работу. Отправлю {due_local:%d.%m.%Y %H:%M}",
-            )
-            log.info("poller: added reminder memo=%s due=%s", memo.id, due.isoformat())
+            due_local = due.astimezone(LOCAL_TIMEZONE)
+            add_comment(memo.id, f"{Emoji.PROCESSED} Взято в работу. Отправлю {due_local:%d.%m.%Y %H:%M}")
+            log.info("Added reminder memo=%s due=%s", memo.id, due.isoformat())
 
-        repo.mark_processed(conn, memo.id, when=now_ts)
+        repository.mark_processed(conn, memo.id, when=now_ts)
 
     return added
 
 
-def run_loop(db_path, stop_event) -> None:
-    conn = db.connect(db_path)
-    log.info("poller started, interval=%ss", POLL_INTERVAL)
+def run_loop(db_path: str, stop_event: threading.Event) -> None:
+    conn = database.connect(db_path)
+    log.info("Started, interval=%ss.", config.POLL_INTERVAL)
+
     try:
         while not stop_event.is_set():
             try:
                 added = run_once(conn)
-                if added:
-                    log.info("poller: added %d reminder(s)", added)
-            except Exception:
-                log.exception("poller: run_once failed")
-            stop_event.wait(POLL_INTERVAL)
+                log.info("Added %d reminder(s)", added)
+            except Exception as exception:
+                log.exception("Failed %s", exception)
+            stop_event.wait(config.POLL_INTERVAL)
     finally:
         conn.close()
-        log.info("poller stopped")
+        log.info("Stopped")

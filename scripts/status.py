@@ -1,24 +1,19 @@
 import sqlite3
 import sys
-from contextlib import closing
 from collections.abc import Iterable, Sequence
+from contextlib import closing
 from typing import Any, TextIO
 
-from app.config import DB_PATH
+from app.config import config
 
 STATUS = frozenset({"pending", "sent", "error", "cancelled"})
-
-
 SELECT_REMINDERS = """
     SELECT id, memo_id, text, due_at, status, created_at, sent_at, attempts
     FROM reminders
 """
 
 
-def get_data_from_database(
-    db_path: str,
-    statuses: Iterable[str],
-) -> tuple[list[str], dict[str, list[sqlite3.Row]]]:
+def get_data_from_database(db_path: str, statuses: Iterable[str]) -> tuple[list[str], dict[str, list[sqlite3.Row]]]:
     """Загружает напоминания из БД, сгруппированные по статусу.
 
     ИЗМЕНЕНО: возвращает кортеж (columns, data), где columns — имена
@@ -107,9 +102,7 @@ def print_table(
         # заголовка И всех ячеек этой колонки. Раньше разделитель рисовался
         # по длине заголовка — из-за этого колонки «плыли».
         if headers is not None:
-            widths = [
-                max(len(h), *(len(r[i]) for r in rows)) for i, h in enumerate(headers)
-            ]
+            widths = [max(len(h), *(len(r[i]) for r in rows)) for i, h in enumerate(headers)]
         else:
             widths = [max(len(r[i]) for r in rows) for i in range(len(rows[0]))]
 
@@ -130,7 +123,7 @@ def print_table(
 def main() -> int:
     # ИЗМЕНЕНО: main возвращает код выхода (0 — успех), чтобы
     # можно было использовать паттерн sys.exit(main()).
-    columns, data = get_data_from_database(db_path=DB_PATH, statuses=STATUS)
+    columns, data = get_data_from_database(db_path=config.DATABASE_PATH, statuses=STATUS)
     print_table(data, headers=columns)
     return 0
 

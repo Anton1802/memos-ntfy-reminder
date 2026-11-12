@@ -1,48 +1,36 @@
-from __future__ import annotations
-
-import logging
-
 import requests
 
-from app.config import NTFY_URL, NTFY_TOPIC, NTFY_TOKEN
+from app.config import config
+from app.logger import get_logger
 
-log = logging.getLogger(__name__)
-
-_TIMEOUT = 10
+log = get_logger(__name__)
 
 
 def send_reminder(text: str, title: str = "Напоминание") -> bool:
-    """Отправляет пуш в ntfy. True при 2xx, False при любой ошибке.
-
-    Топик уходит в JSON (NTFY_URL — только база без пути).
-    """
     if not text or not text.strip():
-        log.warning("send_reminder: пустой текст, пропускаем")
-        return False
-
-    if not NTFY_TOPIC:
-        log.error("send_reminder: NTFY_TOPIC не задан")
+        log.warning("Skip empty text")
         return False
 
     payload = {
-        "topic": NTFY_TOPIC,
         "title": title,
         "message": text,
-        "priority": 4,
-        "tags": ["bell"],
+        "topic": config.NTFY_TOPIC,
+        "priority": config.NTFY_PRIORITY,
+        "tags": config.NTFY_TAGS,
     }
+
     headers = {}
-    if NTFY_TOKEN:
-        headers["Authorization"] = f"Bearer {NTFY_TOKEN}"
+    if config.NTFY_TOKEN:
+        headers["Authorization"] = f"Bearer {config.NTFY_TOKEN}"
 
     try:
-        r = requests.post(NTFY_URL, json=payload, headers=headers, timeout=_TIMEOUT)
+        response = requests.post(config.NTFY_URL, json=payload, headers=headers, timeout=config.NTFY_TIMEOUT)
     except requests.RequestException as e:
-        log.error("ntfy request failed: %s", e)
+        log.error("Request failed: %s", e)
         return False
 
-    if not r.ok:
-        log.error("ntfy returned %s: %s", r.status_code, r.text[:200])
+    if not response.ok:
+        log.error("Returned %s: %s", response.status_code, response.text[:200])
         return False
 
     return True
