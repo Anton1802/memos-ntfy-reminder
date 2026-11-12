@@ -22,23 +22,23 @@ def main() -> None:
     _init_database_schema()
     log.info("Database schema created")
 
-    stop = threading.Event()
+    stop_event = threading.Event()
 
     def _on_signal(signum, _) -> None:
         log.info("Received signal %s, shutting down", signum)
-        stop.set()
+        stop_event.set()
 
     signal.signal(signal.SIGTERM, _on_signal)
     signal.signal(signal.SIGINT, _on_signal)
 
-    poller = threading.Thread(target=poller_loop, args=(config.DATABASE_PATH, stop), name="poller", daemon=False)
-    worker = threading.Thread(target=worker_loop, args=(config.DATABASE_PATH, stop), name="worker", daemon=False)
+    poller = threading.Thread(target=poller_loop, args=(config.DATABASE_PATH, stop_event), name="poller", daemon=False)
+    worker = threading.Thread(target=worker_loop, args=(config.DATABASE_PATH, stop_event), name="worker", daemon=False)
 
     poller.start()
     worker.start()
 
     log.info("Ntfy reminder started")
-    stop.wait()
+    stop_event.wait()
 
     poller.join(timeout=5)
     worker.join(timeout=5)
