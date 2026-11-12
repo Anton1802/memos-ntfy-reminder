@@ -28,7 +28,7 @@ def list_memos(limit: int = 200) -> list[Memo]:
         try:
             out.append(Memo.from_payload(item))
         except (KeyError, ValueError, TypeError) as e:
-            log.warning("Skip malformed memo: %s", e)
+            log.warning("List skip malformed memo: %s", e)
 
     return out
 
